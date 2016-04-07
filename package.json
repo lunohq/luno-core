@@ -2,7 +2,7 @@
   "name": "luno-core",
   "version": "0.0.1",
   "description": "Core logic for luno",
-  "main": "dist/luno-core.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "gulp",
     "lint": "gulp lint",
@@ -57,7 +57,7 @@
     "webpack-stream": "^3.1.0"
   },
   "babelBoilerplateOptions": {
-    "entryFileName": "luno-core",
+    "entryFileName": "index",
     "mainVarName": "luno"
   }
 }
