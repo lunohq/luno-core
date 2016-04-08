@@ -1,8 +1,3 @@
-const config = {
-  sessionToken: process.env.AWS_SESSION_TOKEN,
-  region: process.env.AWS_REGION,
-};
-
 /**
  * Return a table name for the model based on env variables.
  *
@@ -29,5 +24,5 @@ export function fromDB(Model, data) {
 export default (() => {
   const AWS = require('aws-sdk');
   const DocumentClient = AWS.DynamoDB.DocumentClient;
-  return new DocumentClient(config);
+  return new DocumentClient();
 })();
