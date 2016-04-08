@@ -6,10 +6,6 @@ const table = resolveTableName('answer');
 
 export class Answer {};
 
-function getCompositeId(teamId, botId) {
-  return `${teamId}=${botId}`;
-}
-
 export function createAnswer(answer) {
   return new Promise((resolve, reject) => {
     answer.id = uuid.v4();
@@ -25,12 +21,11 @@ export function createAnswer(answer) {
   });
 }
 
-export function getAnswer(teamId, botId, id) {
-  const compositeId = getCompositeId(teamId, botId);
+export function getAnswer(teamIdBotId, id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: { id, compositeId },
+      Key: { id, teamIdBotId },
     };
 
     client.get(params, (err, data) => {
@@ -42,13 +37,12 @@ export function getAnswer(teamId, botId, id) {
 }
 
 export function getAnswers(teamId, botId) {
-  const compositeId = getCompositeId(teamId, botId);
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      KeyConditionExpression: 'HashKey = :hkey',
+      KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
       ExpressionAttributeValues: {
-        ':hkey': compositeId,
+        ':teamIdBotId': `${teamId}:${botId}`,
       },
     };
 

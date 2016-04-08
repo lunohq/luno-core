@@ -701,10 +701,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	;
 	
-	function getCompositeId(teamId, botId) {
-	  return teamId + '=' + botId;
-	}
-	
 	function createAnswer(answer) {
 	  return new Promise(function (resolve, reject) {
 	    answer.id = _nodeUuid2.default.v4();
@@ -720,12 +716,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 	}
 	
-	function getAnswer(teamId, botId, id) {
-	  var compositeId = getCompositeId(teamId, botId);
+	function getAnswer(teamIdBotId, id) {
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      Key: { id: id, compositeId: compositeId }
+	      Key: { id: id, teamIdBotId: teamIdBotId }
 	    };
 	
 	    _client2.default.get(params, function (err, data) {
@@ -737,13 +732,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	function getAnswers(teamId, botId) {
-	  var compositeId = getCompositeId(teamId, botId);
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      KeyConditionExpression: 'HashKey = :hkey',
+	      KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
 	      ExpressionAttributeValues: {
-	        ':hkey': compositeId
+	        ':teamIdBotId': teamId + ':' + botId
 	      }
 	    };
 	
