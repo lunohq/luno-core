@@ -21,7 +21,7 @@ export function resolveTableName(model) {
  *
  * @param {Type} Model type of model
  * @param {Object} data data to copy to the model
- * @Return {Object} returns the inflated model
+ * @return {Object} returns the inflated model
  */
 export function fromDB(Model, data) {
   const model = new Model();

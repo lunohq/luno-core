@@ -64,14 +64,17 @@ function build() {
       output: {
         filename: exportFileName + '.js',
         libraryTarget: 'umd',
-        library: config.mainVarName
+        library: config.mainVarName,
       },
       module: {
         loaders: [
-          { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' }
-        ]
+          { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' },
+        ],
       },
-      devtool: 'source-map'
+      node: {
+        fs: 'empty',
+      },
+      devtool: 'source-map',
     }))
     .pipe(gulp.dest(destinationFolder))
     .pipe($.filter(['*', '!**/*.js.map']))
@@ -83,11 +86,11 @@ function build() {
 }
 
 function _mocha() {
-  return gulp.src(['test/setup/node.js', 'test/unit/**/*.js'], {read: false})
+  return gulp.src(['test/setup/node.js', 'test/unit/**/*.js'], { read: false })
     .pipe($.mocha({
       reporter: 'dot',
       globals: Object.keys(mochaGlobals.globals),
-      ignoreLeaks: false
+      ignoreLeaks: false,
     }));
 }
 
@@ -105,11 +108,10 @@ function coverage(done) {
   gulp.src(['src/**/*.js'])
     .pipe($.istanbul({ instrumenter: Instrumenter }))
     .pipe($.istanbul.hookRequire())
-    .on('finish', () => {
-      return test()
+    .on('finish', () => test()
         .pipe($.istanbul.writeReports())
-        .on('end', done);
-    });
+        .on('end', done)
+    );
 }
 
 const watchFiles = ['src/**/*', 'test/**/*', 'package.json', '**/.eslintrc', '.jscsrc'];
@@ -137,29 +139,33 @@ function testBrowser() {
       watch: true,
       entry: allFiles,
       output: {
-        filename: '__spec-build.js'
+        filename: '__spec-build.js',
       },
       module: {
         loaders: [
+
           // This is what allows us to author in future JavaScript
           { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' },
+
           // This allows the test setup scripts to load `package.json`
-          { test: /\.json$/, exclude: /node_modules/, loader: 'json-loader' }
-        ]
+          { test: /\.json$/, exclude: /node_modules/, loader: 'json-loader' },
+        ],
       },
       plugins: [
+
         // By default, webpack does `n=>n` compilation with entry files. This concatenates
         // them into a single chunk.
-        new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 })
+        new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }),
       ],
-      devtool: 'inline-source-map'
-    }, null, function() {
+      devtool: 'inline-source-map',
+    }, null, function () {
       if (firstBuild) {
-        $.livereload.listen({port: 35729, host: 'localhost', start: true});
+        $.livereload.listen({ port: 35729, host: 'localhost', start: true });
         var watcher = gulp.watch(watchFiles, ['lint']);
       } else {
         $.livereload.reload('./tmp/__spec-build.js');
       }
+
       firstBuild = false;
     }))
     .pipe(gulp.dest('./tmp'));

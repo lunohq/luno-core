@@ -15,5 +15,6 @@ require('./setup')();
   PhantomJS. Setting that up is currently outside of the scope of this
   boilerplate.
 */
+
 // import simpleJSDom from 'simple-jsdom';
 // simpleJSDom.install();

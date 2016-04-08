@@ -22,7 +22,7 @@ export function getTeam(id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: {id},
+      Key: { id },
     };
 
     client.get(params, (err, data) => {
