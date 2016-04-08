@@ -21,6 +21,16 @@ export function fromDB(Model, data) {
   return Object.assign(model, data);
 }
 
+/**
+ * Helper for returning a composite key in our standard format.
+ *
+ * @param {Array[String]} parts composite id parts
+ * @return {String} returns the composite id
+ */
+export function compositeId(...parts) {
+  return parts.join('_');
+}
+
 export default (() => {
   const AWS = require('aws-sdk');
   const DocumentClient = AWS.DynamoDB.DocumentClient;

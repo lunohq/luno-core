@@ -119,6 +119,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 	exports.resolveTableName = resolveTableName;
 	exports.fromDB = fromDB;
+	exports.compositeId = compositeId;
 	/**
 	 * Return a table name for the model based on env variables.
 	 *
@@ -142,6 +143,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	function fromDB(Model, data) {
 	  var model = new Model();
 	  return Object.assign(model, data);
+	}
+	
+	/**
+	 * Helper for returning a composite key in our standard format.
+	 *
+	 * @param {Array[String]} parts composite id parts
+	 * @return {String} returns the composite id
+	 */
+	function compositeId() {
+	  for (var _len = arguments.length, parts = Array(_len), _key = 0; _key < _len; _key++) {
+	    parts[_key] = arguments[_key];
+	  }
+	
+	  return parts.join('_');
 	}
 	
 	exports.default = function () {
@@ -737,7 +752,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      TableName: table,
 	      KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
 	      ExpressionAttributeValues: {
-	        ':teamIdBotId': teamId + ':' + botId
+	        ':teamIdBotId': (0, _client.compositeId)(teamId, botId)
 	      }
 	    };
 	

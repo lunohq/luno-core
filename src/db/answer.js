@@ -1,6 +1,6 @@
 import uuid from 'node-uuid';
 
-import client, { fromDB, resolveTableName } from './client';
+import client, { compositeId, fromDB, resolveTableName } from './client';
 
 const table = resolveTableName('answer');
 
@@ -42,7 +42,7 @@ export function getAnswers(teamId, botId) {
       TableName: table,
       KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
       ExpressionAttributeValues: {
-        ':teamIdBotId': `${teamId}:${botId}`,
+        ':teamIdBotId': compositeId(teamId, botId),
       },
     };
 
