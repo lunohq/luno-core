@@ -609,6 +609,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	exports.uuid = _nodeUuid2.default;
 	
+	
+	var table = (0, _client.resolveTableName)('bot');
+	
 	var Bot = exports.Bot = function Bot() {
 	  _classCallCheck(this, Bot);
 	};
