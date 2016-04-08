@@ -1,5 +1,14 @@
-exports["luno"] =
-/******/ (function(modules) { // webpackBootstrap
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory(require("aws-sdk"), (function webpackLoadOptionalExternalModule() { try { return require("crypto"); } catch(e) {} }()));
+	else if(typeof define === 'function' && define.amd)
+		define(["aws-sdk", "crypto"], factory);
+	else if(typeof exports === 'object')
+		exports["luno"] = factory(require("aws-sdk"), (function webpackLoadOptionalExternalModule() { try { return require("crypto"); } catch(e) {} }()));
+	else
+		root["luno"] = factory(root["aws-sdk"], root["crypto"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_3__, __WEBPACK_EXTERNAL_MODULE_7__) {
+return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 /******/
@@ -69,9 +78,13 @@ exports["luno"] =
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.answer = exports.bot = exports.user = exports.team = undefined;
+	exports.answer = exports.bot = exports.user = exports.team = exports.client = undefined;
 	
-	var _team2 = __webpack_require__(2);
+	var _client2 = __webpack_require__(2);
+	
+	var _client = _interopRequireWildcard(_client2);
+	
+	var _team2 = __webpack_require__(4);
 	
 	var _team = _interopRequireWildcard(_team2);
 	
@@ -89,6 +102,7 @@ exports["luno"] =
 	
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 	
+	exports.client = _client;
 	exports.team = _team;
 	exports.user = _user;
 	exports.bot = _bot;
@@ -103,11 +117,64 @@ exports["luno"] =
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	exports.resolveTableName = resolveTableName;
+	exports.fromDB = fromDB;
+	var config = {
+	  sessionToken: process.env.AWS_SESSION_TOKEN,
+	  region: process.env.AWS_REGION
+	};
+	
+	/**
+	 * Return a table name for the model based on env variables.
+	 *
+	 * @param {String} model model name
+	 * @return {String} resolved table name
+	 */
+	function resolveTableName(model) {
+	  var _process = process;
+	  var STAGE = _process.env.STAGE;
+	
+	  return STAGE + '-' + model;
+	}
+	
+	/**
+	 * Return a model type with the values from the db.
+	 *
+	 * @param {Type} Model type of model
+	 * @param {Object} data data to copy to the model
+	 * @return {Object} returns the inflated model
+	 */
+	function fromDB(Model, data) {
+	  var model = new Model();
+	  return Object.assign({}, model, data);
+	}
+	
+	exports.default = function () {
+	  var AWS = __webpack_require__(3);
+	  var DocumentClient = AWS.DynamoDB.DocumentClient;
+	  return new DocumentClient(config);
+	}();
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	module.exports = __WEBPACK_EXTERNAL_MODULE_3__;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
 	exports.Team = undefined;
 	exports.createTeam = createTeam;
 	exports.getTeam = getTeam;
 	
-	var _client = __webpack_require__(3);
+	var _client = __webpack_require__(2);
 	
 	var _client2 = _interopRequireDefault(_client);
 	
@@ -165,64 +232,6 @@ exports["luno"] =
 	}
 
 /***/ },
-/* 3 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.resolveTableName = resolveTableName;
-	exports.fromDB = fromDB;
-	
-	var _awsSdk = __webpack_require__(4);
-	
-	var _awsSdk2 = _interopRequireDefault(_awsSdk);
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-	
-	var config = {
-	  sessionToken: process.env.AWS_SESSION_TOKEN,
-	  region: process.env.AWS_REGION
-	};
-	
-	/**
-	 * Return a table name for the model based on env variables.
-	 *
-	 * @param {String} model model name
-	 * @return {String} resolved table name
-	 */
-	function resolveTableName(model) {
-	  var _process = process;
-	  var STAGE = _process.env.STAGE;
-	
-	  return STAGE + '-' + model;
-	}
-	
-	/**
-	 * Return a model type with the values from the db.
-	 *
-	 * @param {Type} Model type of model
-	 * @param {Object} data data to copy to the model
-	 * @return {Object} returns the inflated model
-	 */
-	function fromDB(Model, data) {
-	  var model = new Model();
-	  return Object.assign({}, model, data);
-	}
-	
-	exports.default = _awsSdk2.default;
-
-	//(() => { new AWS.DyanmoDB.DocumentClient(config); })();
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	module.exports = require("aws-sdk");
-
-/***/ },
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -240,7 +249,7 @@ exports["luno"] =
 	
 	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
 	
-	var _client = __webpack_require__(3);
+	var _client = __webpack_require__(2);
 	
 	var _client2 = _interopRequireDefault(_client);
 	
@@ -619,7 +628,7 @@ exports["luno"] =
 	
 	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
 	
-	var _client = __webpack_require__(3);
+	var _client = __webpack_require__(2);
 	
 	var _client2 = _interopRequireDefault(_client);
 	
@@ -714,7 +723,7 @@ exports["luno"] =
 	
 	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
 	
-	var _client = __webpack_require__(3);
+	var _client = __webpack_require__(2);
 	
 	var _client2 = _interopRequireDefault(_client);
 	
@@ -798,5 +807,7 @@ exports["luno"] =
 	}
 
 /***/ }
-/******/ ]);
+/******/ ])
+});
+;
 //# sourceMappingURL=index.js.map

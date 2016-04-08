@@ -1,5 +1,3 @@
-import AWS from 'aws-sdk';
-
 const config = {
   sessionToken: process.env.AWS_SESSION_TOKEN,
   region: process.env.AWS_REGION,
@@ -28,6 +26,8 @@ export function fromDB(Model, data) {
   return Object.assign({}, model, data);
 }
 
-export default AWS;
-
-//(() => { new AWS.DyanmoDB.DocumentClient(config); })();
+export default (() => {
+  const AWS = require('aws-sdk');
+  const DocumentClient = AWS.DynamoDB.DocumentClient;
+  return new DocumentClient(config);
+})();

@@ -63,7 +63,7 @@ function build() {
     .pipe(webpackStream({
       output: {
         filename: exportFileName + '.js',
-        libraryTarget: 'commonjs',
+        libraryTarget: 'umd',
         library: config.mainVarName,
       },
       externals: ['aws-sdk'],
