@@ -59,5 +59,9 @@
   "babelBoilerplateOptions": {
     "entryFileName": "index",
     "mainVarName": "luno"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.3.1",
+    "node-uuid": "^1.4.7"
   }
 }
