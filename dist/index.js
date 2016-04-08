@@ -695,6 +695,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.createAnswer = createAnswer;
 	exports.getAnswer = getAnswer;
 	exports.getAnswers = getAnswers;
+	exports.deleteAnswer = deleteAnswer;
+	exports.updateAnswer = updateAnswer;
 	
 	var _nodeUuid = __webpack_require__(6);
 	
@@ -743,12 +745,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	function getAnswer(teamIdBotId, id) {
-	  return new Promise(function (resolve, reject) {
-	    var params = {
-	      TableName: table,
-	      Key: { id: id, teamIdBotId: teamIdBotId }
-	    };
+	  var params = {
+	    TableName: table,
+	    Key: { id: id, teamIdBotId: teamIdBotId }
+	  };
 	
+	  return new Promise(function (resolve, reject) {
 	    _client2.default.get(params, function (err, data) {
 	      if (err) return reject(err);
 	      var answer = (0, _client.fromDB)(Answer, data.Item);
@@ -758,20 +760,63 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	function getAnswers(teamId, botId) {
-	  return new Promise(function (resolve, reject) {
-	    var params = {
-	      TableName: table,
-	      KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
-	      ExpressionAttributeValues: {
-	        ':teamIdBotId': (0, _client.compositeId)(teamId, botId)
-	      }
-	    };
+	  var params = {
+	    TableName: table,
+	    KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
+	    ExpressionAttributeValues: {
+	      ':teamIdBotId': (0, _client.compositeId)(teamId, botId)
+	    }
+	  };
 	
+	  return new Promise(function (resolve, reject) {
 	    _client2.default.query(params, function (err, data) {
 	      if (err) return reject(err);
 	      return resolve(data.Items.map(function (item) {
 	        return (0, _client.fromDB)(Answer, item);
 	      }));
+	    });
+	  });
+	}
+	
+	function deleteAnswer(teamIdBotId, id) {
+	  var params = {
+	    TableName: table,
+	    Key: { id: id, teamIdBotId: teamIdBotId }
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.delete(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve();
+	    });
+	  });
+	}
+	
+	function updateAnswer(_ref2) {
+	  var teamIdBotId = _ref2.teamIdBotId;
+	  var id = _ref2.id;
+	  var title = _ref2.title;
+	  var body = _ref2.body;
+	
+	  var params = {
+	    TableName: table,
+	    Key: { id: id, teamIdBotId: teamIdBotId },
+	    UpdateExpression: 'SET #t = :t, #b = :b',
+	    ExpressionAttributeNames: {
+	      '#t': 'title',
+	      '#b': 'body'
+	    },
+	    ExpressionAttributeValues: {
+	      ':t': title,
+	      ':b': body
+	    },
+	    ReturnValues: 'ALL_NEW'
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.update(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve((0, _client.fromDB)(Answer, data.Attributes));
 	    });
 	  });
 	}

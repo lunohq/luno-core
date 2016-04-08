@@ -26,12 +26,12 @@ export function createAnswer({ teamId, botId, ...data }) {
 }
 
 export function getAnswer(teamIdBotId, id) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      Key: { id, teamIdBotId },
-    };
+  const params = {
+    TableName: table,
+    Key: { id, teamIdBotId },
+  };
 
+  return new Promise((resolve, reject) => {
     client.get(params, (err, data) => {
       if (err) return reject(err);
       const answer = fromDB(Answer, data.Item);
@@ -41,18 +41,56 @@ export function getAnswer(teamIdBotId, id) {
 }
 
 export function getAnswers(teamId, botId) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
-      ExpressionAttributeValues: {
-        ':teamIdBotId': compositeId(teamId, botId),
-      },
-    };
+  const params = {
+    TableName: table,
+    KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
+    ExpressionAttributeValues: {
+      ':teamIdBotId': compositeId(teamId, botId),
+    },
+  };
 
+  return new Promise((resolve, reject) => {
     client.query(params, (err, data) => {
       if (err) return reject(err);
       return resolve(data.Items.map((item) => fromDB(Answer, item)));
+    });
+  });
+}
+
+export function deleteAnswer(teamIdBotId, id) {
+  const params = {
+    TableName: table,
+    Key: { id, teamIdBotId },
+  };
+
+  return new Promise((resolve, reject) => {
+    client.delete(params, (err, data) => {
+      if (err) return reject(err);
+      return resolve();
+    });
+  });
+}
+
+export function updateAnswer({ teamIdBotId, id, title, body }) {
+  const params = {
+    TableName: table,
+    Key: { id, teamIdBotId },
+    UpdateExpression: 'SET #t = :t, #b = :b',
+    ExpressionAttributeNames: {
+      '#t': 'title',
+      '#b': 'body',
+    },
+    ExpressionAttributeValues: {
+      ':t': title,
+      ':b': body,
+    },
+    ReturnValues: 'ALL_NEW',
+  };
+
+  return new Promise((resolve, reject) => {
+    client.update(params, (err, data) => {
+      if (err) return reject(err);
+      return resolve(fromDB(Answer, data.Attributes));
     });
   });
 }
