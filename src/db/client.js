@@ -18,7 +18,7 @@ export function resolveTableName(model) {
  */
 export function fromDB(Model, data) {
   const model = new Model();
-  return Object.assign({}, model, data);
+  return Object.assign(model, data);
 }
 
 export default (() => {
