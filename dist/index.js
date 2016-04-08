@@ -706,6 +706,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
+	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
 	var table = (0, _client.resolveTableName)('answer');
@@ -716,17 +718,26 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	;
 	
-	function createAnswer(answer) {
-	  return new Promise(function (resolve, reject) {
-	    answer.id = _nodeUuid2.default.v4();
-	    var params = {
-	      TableName: table,
-	      Item: user
-	    };
+	function createAnswer(_ref) {
+	  var teamId = _ref.teamId;
+	  var botId = _ref.botId;
 	
+	  var data = _objectWithoutProperties(_ref, ['teamId', 'botId']);
+	
+	  var answer = new Answer();
+	  Object.assign(answer, data);
+	  answer.id = _nodeUuid2.default.v4();
+	  answer.teamIdBotId = (0, _client.compositeId)(teamId, botId);
+	
+	  var params = {
+	    TableName: table,
+	    Item: answer
+	  };
+	
+	  return new Promise(function (resolve, reject) {
 	    _client2.default.put(params, function (err, data) {
 	      if (err) return reject(err);
-	      return resovle(answer);
+	      return resolve(answer);
 	    });
 	  });
 	}

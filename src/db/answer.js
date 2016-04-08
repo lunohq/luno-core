@@ -6,17 +6,21 @@ const table = resolveTableName('answer');
 
 export class Answer {};
 
-export function createAnswer(answer) {
-  return new Promise((resolve, reject) => {
-    answer.id = uuid.v4();
-    const params = {
-      TableName: table,
-      Item: user,
-    };
+export function createAnswer({ teamId, botId, ...data }) {
+  const answer = new Answer();
+  Object.assign(answer, data);
+  answer.id = uuid.v4();
+  answer.teamIdBotId = compositeId(teamId, botId);
 
+  const params = {
+    TableName: table,
+    Item: answer,
+  };
+
+  return new Promise((resolve, reject) => {
     client.put(params, (err, data) => {
       if (err) return reject(err);
-      return resovle(answer);
+      return resolve(answer);
     });
   });
 }
