@@ -120,7 +120,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.resolveTableName = resolveTableName;
 	exports.fromDB = fromDB;
 	var config = {
-	  sessionToken: process.env.AWS_SESSION_TOKEN,
 	  region: process.env.AWS_REGION
 	};
 	
