@@ -2,6 +2,8 @@ export uuid from 'node-uuid';
 
 import client, { fromDB, resolveTableName } from './client';
 
+const table = resolveTableName('bot');
+
 export class Bot {};
 
 export function createBot(bot) {
