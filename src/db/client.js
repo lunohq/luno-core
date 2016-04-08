@@ -28,4 +28,4 @@ export function fromDB(Model, data) {
   return Object.assign({}, model, data);
 }
 
-export default new AWS.DyanmoDB.DocumentClient(config);
+export default () => { new AWS.DyanmoDB.DocumentClient(config) }();
