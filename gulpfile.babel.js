@@ -71,10 +71,8 @@ function build() {
           { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' },
         ],
       },
-      node: {
-        fs: 'empty',
-      },
       devtool: 'source-map',
+      target: 'node',
     }))
     .pipe(gulp.dest(destinationFolder))
     .pipe($.filter(['*', '!**/*.js.map']))
