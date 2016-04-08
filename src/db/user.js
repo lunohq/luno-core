@@ -35,3 +35,20 @@ export function getUser(teamId, id) {
     });
   });
 }
+
+export function getUsers(teamId) {
+  return new Promise((resolve, reject) => {
+    const params = {
+      TableName: table,
+      KeyConditionExpression: 'HashKey = :hkey',
+      ExpressionAttributeValues: {
+        ':hkey': teamId,
+      },
+    };
+
+    client.query(params, (err, data) => {
+      if (err) return reject(err);
+      return data.Items.map((item) => fromDB(User, item));
+    });
+  });
+}
