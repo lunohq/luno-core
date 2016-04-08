@@ -282,17 +282,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      KeyConditionExpression: 'HashKey = :hkey',
+	      KeyConditionExpression: 'teamId = :teamId',
 	      ExpressionAttributeValues: {
-	        ':hkey': teamId
+	        ':teamId': teamId
 	      }
 	    };
 	
 	    _client2.default.query(params, function (err, data) {
 	      if (err) return reject(err);
-	      return data.Items.map(function (item) {
+	      return resolve(data.Items.map(function (item) {
 	        return (0, _client.fromDB)(User, item);
-	      });
+	      }));
 	    });
 	  });
 	}
@@ -652,17 +652,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      KeyConditionExpression: 'HashKey = :hkey',
+	      KeyConditionExpression: 'teamId = :teamId',
 	      ExpressionAttributeValues: {
-	        ':hkey': teamId
+	        ':teamId': teamId
 	      }
 	    };
 	
 	    _client2.default.query(params, function (err, data) {
 	      if (err) return reject(err);
-	      return data.Items.map(function (item) {
+	      return resolve(data.Items.map(function (item) {
 	        return (0, _client.fromDB)(Bot, item);
-	      });
+	      }));
 	    });
 	  });
 	}
@@ -749,9 +749,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    _client2.default.query(params, function (err, data) {
 	      if (err) return reject(err);
-	      return data.Items.map(function (item) {
+	      return resolve(data.Items.map(function (item) {
 	        return (0, _client.fromDB)(Answer, item);
-	      });
+	      }));
 	    });
 	  });
 	}

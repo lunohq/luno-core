@@ -40,15 +40,15 @@ export function getUsers(teamId) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      KeyConditionExpression: 'HashKey = :hkey',
+      KeyConditionExpression: 'teamId = :teamId',
       ExpressionAttributeValues: {
-        ':hkey': teamId,
+        ':teamId': teamId,
       },
     };
 
     client.query(params, (err, data) => {
       if (err) return reject(err);
-      return data.Items.map((item) => fromDB(User, item));
+      return resolve(data.Items.map((item) => fromDB(User, item)));
     });
   });
 }

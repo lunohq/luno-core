@@ -54,7 +54,7 @@ export function getAnswers(teamId, botId) {
 
     client.query(params, (err, data) => {
       if (err) return reject(err);
-      return data.Items.map((item) => fromDB(Answer, item));
+      return resolve(data.Items.map((item) => fromDB(Answer, item)));
     });
   });
 }
