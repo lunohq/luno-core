@@ -1,24 +1,27 @@
-import client, { fromDB, resolveTableName } from '../client';
+import uuid from 'node-uuid';
 
-import { Team } from './models';
+import client, { fromDB, resolveTableName } from './client';
 
-const table = resolveTableName('team');
+const table = resolveTableName('user');
 
-export function createTeam(team) {
+export class User extends Object {};
+
+export function createUser(user) {
   return new Promise((resolve, reject) => {
+    user.id = uuid.v4();
     const params = {
       TableName: table,
-      Item: team,
+      Item: user,
     };
 
     client.put(params, (err, data) => {
       if (err) return reject(err);
-      return resolve(team);
+      return resolve(user);
     });
   });
 }
 
-export function getTeam(id) {
+export function getUser(id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
@@ -27,8 +30,8 @@ export function getTeam(id) {
 
     client.get(params, (err, data) => {
       if (err) return reject(err);
-      const team = fromDB(Team, data.Item);
-      return resolve(team);
+      const user = fromDB(User, data.Item);
+      return resolve(user);
     });
   });
 }
