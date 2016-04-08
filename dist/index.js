@@ -78,7 +78,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.user = exports.team = undefined;
+	exports.answer = exports.bot = exports.user = exports.team = undefined;
 	
 	var _team2 = __webpack_require__(2);
 	
@@ -88,10 +88,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _user = _interopRequireWildcard(_user2);
 	
+	var _bot2 = __webpack_require__(283);
+	
+	var _bot = _interopRequireWildcard(_bot2);
+	
+	var _answer2 = __webpack_require__(284);
+	
+	var _answer = _interopRequireWildcard(_answer2);
+	
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 	
 	exports.team = _team;
 	exports.user = _user;
+	exports.bot = _bot;
+	exports.answer = _answer;
 
 /***/ },
 /* 2 */
@@ -32572,11 +32582,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 	}
 	
-	function getUser(id) {
+	function getUser(teamId, id) {
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      Key: { id: id }
+	      Key: { id: id, teamId: teamId }
 	    };
 	
 	    _client2.default.get(params, function (err, data) {
@@ -32865,6 +32875,157 @@ return /******/ (function(modules) { // webpackBootstrap
 	})('undefined' !== typeof window ? window : null);
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(9).Buffer))
+
+/***/ },
+/* 283 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.Bot = exports.uuid = undefined;
+	exports.createBot = createBot;
+	exports.getBot = getBot;
+	
+	var _nodeUuid = __webpack_require__(282);
+	
+	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
+	
+	var _client = __webpack_require__(3);
+	
+	var _client2 = _interopRequireDefault(_client);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	exports.uuid = _nodeUuid2.default;
+	
+	var Bot = exports.Bot = function (_Object) {
+	  _inherits(Bot, _Object);
+	
+	  function Bot() {
+	    _classCallCheck(this, Bot);
+	
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Bot).apply(this, arguments));
+	  }
+	
+	  return Bot;
+	}(Object);
+	
+	;
+	
+	function createBot(bot) {
+	  return new Promise(function (resolve, reject) {
+	    bot.id = uuid.v4();
+	    var params = {
+	      TableName: table,
+	      Item: bot
+	    };
+	
+	    _client2.default.put(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve(bot);
+	    });
+	  });
+	}
+	
+	function getBot(teamId, id) {
+	  return new Promise(function (resolve, reject) {
+	    var params = {
+	      TableName: table,
+	      Key: { teamId: teamId, id: id }
+	    };
+	
+	    _client2.default.get(params, function (err, data) {
+	      if (err) return reject(err);
+	      var bot = (0, _client.fromDB)(Bot, data.Item);
+	      return resolve(bot);
+	    });
+	  });
+	}
+
+/***/ },
+/* 284 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.Answer = undefined;
+	exports.createAnswer = createAnswer;
+	exports.getAnswer = getAnswer;
+	
+	var _nodeUuid = __webpack_require__(282);
+	
+	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
+	
+	var _client = __webpack_require__(3);
+	
+	var _client2 = _interopRequireDefault(_client);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var table = (0, _client.resolveTableName)('answer');
+	
+	var Answer = exports.Answer = function (_Object) {
+	  _inherits(Answer, _Object);
+	
+	  function Answer() {
+	    _classCallCheck(this, Answer);
+	
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Answer).apply(this, arguments));
+	  }
+	
+	  return Answer;
+	}(Object);
+	
+	;
+	
+	function createAnswer(answer) {
+	  return new Promise(function (resolve, reject) {
+	    answer.id = _nodeUuid2.default.v4();
+	    var params = {
+	      TableName: table,
+	      Item: user
+	    };
+	
+	    _client2.default.put(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resovle(answer);
+	    });
+	  });
+	}
+	
+	function getAnswer(teamId, botId, id) {
+	  var compositeId = teamId + '-' + botId;
+	  return new Promise(function (resolve, reject) {
+	    var params = {
+	      TableName: table,
+	      Key: { id: id, compositeId: compositeId }
+	    };
+	
+	    _client2.default.get(params, function (err, data) {
+	      if (err) return reject(err);
+	      var answer = (0, _client.fromDB)(Answer, data.Item);
+	      return resolve(answer);
+	    });
+	  });
+	}
 
 /***/ }
 /******/ ])

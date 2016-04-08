@@ -19,11 +19,11 @@ export function createBot(bot) {
   });
 }
 
-export function getBot(id) {
+export function getBot(teamId, id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: { id },
+      Key: { teamId, id },
     };
 
     client.get(params, (err, data) => {

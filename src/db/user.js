@@ -21,11 +21,11 @@ export function createUser(user) {
   });
 }
 
-export function getUser(id) {
+export function getUser(teamId, id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: { id },
+      Key: { id, teamId },
     };
 
     client.get(params, (err, data) => {

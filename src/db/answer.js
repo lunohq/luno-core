@@ -21,11 +21,12 @@ export function createAnswer(answer) {
   });
 }
 
-export function getAnswer(id) {
+export function getAnswer(teamId, botId, id) {
+  const compositeId = `${teamId}-${botId}`;
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: { id },
+      Key: { id, compositeId },
     };
 
     client.get(params, (err, data) => {
