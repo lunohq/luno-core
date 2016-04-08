@@ -33,3 +33,20 @@ export function getBot(teamId, id) {
     });
   });
 }
+
+export function getBots(teamId) {
+  return new Promise((resolve, reject) => {
+    const params = {
+      TableName: table,
+      KeyConditionExpression: 'HashKey = :hkey',
+      ExpressionAttributeValues: {
+        ':hkey': teamId,
+      },
+    };
+
+    client.query(params, (err, data) => {
+      if (err) return reject(err);
+      return data.Items.map((item) => fromDB(Bot, item));
+    });
+  });
+}
