@@ -61,6 +61,7 @@
     "mainVarName": "luno"
   },
   "dependencies": {
+    "aws-sdk": "^2.3.2",
     "node-uuid": "^1.4.7"
   }
 }
