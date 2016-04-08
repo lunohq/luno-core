@@ -4,7 +4,7 @@ import client, { fromDB, resolveTableName } from './client';
 
 const table = resolveTableName('answer');
 
-export class Answer extends Object {};
+export class Answer {};
 
 function getCompositeId(teamId, botId) {
   return `${teamId}=${botId}`;

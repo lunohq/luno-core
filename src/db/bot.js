@@ -2,7 +2,7 @@ export uuid from 'node-uuid';
 
 import client, { fromDB, resolveTableName } from './client';
 
-export class Bot extends Object {};
+export class Bot {};
 
 export function createBot(bot) {
   return new Promise((resolve, reject) => {

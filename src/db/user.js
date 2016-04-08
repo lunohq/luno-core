@@ -4,7 +4,7 @@ import client, { fromDB, resolveTableName } from './client';
 
 const table = resolveTableName('user');
 
-export class User extends Object {};
+export class User {};
 
 export function createUser(user) {
   return new Promise((resolve, reject) => {

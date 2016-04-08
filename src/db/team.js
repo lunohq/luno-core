@@ -2,7 +2,7 @@ import client, { fromDB, resolveTableName } from './client';
 
 const table = resolveTableName('team');
 
-export class Team extends Object {};
+export class Team {};
 
 export function createTeam(team) {
   return new Promise((resolve, reject) => {

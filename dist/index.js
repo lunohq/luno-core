@@ -119,10 +119,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 	exports.resolveTableName = resolveTableName;
 	exports.fromDB = fromDB;
-	var config = {
-	  region: process.env.AWS_REGION
-	};
-	
 	/**
 	 * Return a table name for the model based on env variables.
 	 *
@@ -145,13 +141,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	function fromDB(Model, data) {
 	  var model = new Model();
-	  return Object.assign({}, model, data);
+	  return Object.assign(model, data);
 	}
 	
 	exports.default = function () {
 	  var AWS = __webpack_require__(3);
 	  var DocumentClient = AWS.DynamoDB.DocumentClient;
-	  return new DocumentClient(config);
+	  return new DocumentClient();
 	}();
 
 /***/ },
@@ -181,23 +177,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
 	var table = (0, _client.resolveTableName)('team');
 	
-	var Team = exports.Team = function (_Object) {
-	  _inherits(Team, _Object);
-	
-	  function Team() {
-	    _classCallCheck(this, Team);
-	
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Team).apply(this, arguments));
-	  }
-	
-	  return Team;
-	}(Object);
+	var Team = exports.Team = function Team() {
+	  _classCallCheck(this, Team);
+	};
 	
 	;
 	
@@ -256,23 +240,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
 	var table = (0, _client.resolveTableName)('user');
 	
-	var User = exports.User = function (_Object) {
-	  _inherits(User, _Object);
-	
-	  function User() {
-	    _classCallCheck(this, User);
-	
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(User).apply(this, arguments));
-	  }
-	
-	  return User;
-	}(Object);
+	var User = exports.User = function User() {
+	  _classCallCheck(this, User);
+	};
 	
 	;
 	
@@ -635,23 +607,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
 	exports.uuid = _nodeUuid2.default;
 	
-	var Bot = exports.Bot = function (_Object) {
-	  _inherits(Bot, _Object);
-	
-	  function Bot() {
-	    _classCallCheck(this, Bot);
-	
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Bot).apply(this, arguments));
-	  }
-	
-	  return Bot;
-	}(Object);
+	var Bot = exports.Bot = function Bot() {
+	  _classCallCheck(this, Bot);
+	};
 	
 	;
 	
@@ -730,23 +690,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
 	var table = (0, _client.resolveTableName)('answer');
 	
-	var Answer = exports.Answer = function (_Object) {
-	  _inherits(Answer, _Object);
-	
-	  function Answer() {
-	    _classCallCheck(this, Answer);
-	
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Answer).apply(this, arguments));
-	  }
-	
-	  return Answer;
-	}(Object);
+	var Answer = exports.Answer = function Answer() {
+	  _classCallCheck(this, Answer);
+	};
 	
 	;
 	
