@@ -805,7 +805,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  answer.id = _nodeUuid2.default.v4();
 	  answer.botId = botId;
 	
-	  now = new Date().toISOString();
+	  var now = new Date().toISOString();
 	  answer.created = now;
 	  answer.changed = now;
 	
