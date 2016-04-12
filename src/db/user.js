@@ -4,7 +4,13 @@ import client, { fromDB, resolveTableName } from './client';
 
 const table = resolveTableName('user-v1');
 
-export class User {};
+export class User {
+  anonymous = false;
+};
+
+export class AnonymousUser extends User {
+  anonymous = true;
+};
 
 export function getUser(id) {
   return new Promise((resolve, reject) => {
