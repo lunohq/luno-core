@@ -31,6 +31,16 @@ export function compositeId(...parts) {
   return parts.join('_');
 }
 
+/**
+ * Helper for deconstructing a composite key in our standard foramt.
+ *
+ * @param {String} id composite id
+ * @return {Array[String]} composite id parts
+ */
+export function deconstructId(id) {
+  return id.split('_');
+}
+
 export default (() => {
   const AWS = require('aws-sdk');
   const DocumentClient = AWS.DynamoDB.DocumentClient;

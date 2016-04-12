@@ -59,15 +59,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.db = undefined;
+	exports.botkit = exports.db = undefined;
 	
 	var _db2 = __webpack_require__(1);
 	
 	var _db = _interopRequireWildcard(_db2);
 	
+	var _botkit2 = __webpack_require__(11);
+	
+	var _botkit = _interopRequireWildcard(_botkit2);
+	
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 	
 	exports.db = _db;
+	exports.botkit = _botkit;
 
 /***/ },
 /* 1 */
@@ -78,7 +83,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.answer = exports.bot = exports.user = exports.team = exports.client = undefined;
+	exports.token = exports.answer = exports.bot = exports.user = exports.team = exports.client = undefined;
 	
 	var _client2 = __webpack_require__(2);
 	
@@ -100,6 +105,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _answer = _interopRequireWildcard(_answer2);
 	
+	var _token2 = __webpack_require__(10);
+	
+	var _token = _interopRequireWildcard(_token2);
+	
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 	
 	exports.client = _client;
@@ -107,6 +116,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.user = _user;
 	exports.bot = _bot;
 	exports.answer = _answer;
+	exports.token = _token;
 
 /***/ },
 /* 2 */
@@ -120,6 +130,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.resolveTableName = resolveTableName;
 	exports.fromDB = fromDB;
 	exports.compositeId = compositeId;
+	exports.deconstructId = deconstructId;
 	/**
 	 * Return a table name for the model based on env variables.
 	 *
@@ -159,6 +170,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return parts.join('_');
 	}
 	
+	/**
+	 * Helper for deconstructing a composite key in our standard foramt.
+	 *
+	 * @param {String} id composite id
+	 * @return {Array[String]} composite id parts
+	 */
+	function deconstructId(id) {
+	  return id.split('_');
+	}
+	
 	exports.default = function () {
 	  var AWS = __webpack_require__(3);
 	  var DocumentClient = AWS.DynamoDB.DocumentClient;
@@ -181,8 +202,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	  value: true
 	});
 	exports.Team = undefined;
-	exports.createTeam = createTeam;
 	exports.getTeam = getTeam;
+	exports.updateTeam = updateTeam;
+	exports.getTeams = getTeams;
 	
 	var _client = __webpack_require__(2);
 	
@@ -192,7 +214,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	var table = (0, _client.resolveTableName)('team');
+	var table = (0, _client.resolveTableName)('team-v1');
 	
 	var Team = exports.Team = function Team() {
 	  _classCallCheck(this, Team);
@@ -200,31 +222,77 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	;
 	
-	function createTeam(team) {
-	  return new Promise(function (resolve, reject) {
-	    var params = {
-	      TableName: table,
-	      Item: team
-	    };
+	function getTeam(id) {
+	  var params = {
+	    TableName: table,
+	    Key: { id: id }
+	  };
 	
-	    _client2.default.put(params, function (err, data) {
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.get(params, function (err, data) {
 	      if (err) return reject(err);
+	
+	      var team = void 0;
+	      if (data.Item) {
+	        team = (0, _client.fromDB)(Team, data.Item);
+	      }
+	
 	      return resolve(team);
 	    });
 	  });
 	}
 	
-	function getTeam(id) {
-	  return new Promise(function (resolve, reject) {
-	    var params = {
-	      TableName: table,
-	      Key: { id: id }
-	    };
+	function updateTeam(team) {
 	
-	    _client2.default.get(params, function (err, data) {
+	  // normalize to camel case
+	  team.bot.userId = team.bot.user_id;
+	  delete team.bot.user_id;
+	
+	  var now = new Date().toISOString();
+	  var params = {
+	    TableName: table,
+	    Key: { id: team.id },
+	    UpdateExpression: '\n      SET\n        #createdBy = if_not_exists(createdBy, :createdBy),\n        #name = :name,\n        #slack = :slack,\n        #created = if_not_exists(#created, :created),\n        #changed = :changed\n    ',
+	    ExpressionAttributeNames: {
+	      '#createdBy': 'createdBy',
+	      '#name': 'name',
+	      '#slack': 'slack',
+	      '#created': 'created',
+	      '#changed': 'changed'
+	    },
+	    ExpressionAttributeValues: {
+	      ':createdBy': team.createdBy,
+	      ':name': team.name,
+	      ':slack': {
+	        bot: team.bot,
+	        url: team.url,
+	        token: team.token
+	      },
+	      ':created': now,
+	      ':changed': now
+	    },
+	    ReturnValues: 'ALL_NEW'
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.update(params, function (err, data) {
 	      if (err) return reject(err);
-	      var team = (0, _client.fromDB)(Team, data.Item);
+	      var team = (0, _client.fromDB)(Team, data.Attributes);
 	      return resolve(team);
+	    });
+	  });
+	}
+	
+	function getTeams() {
+	  var params = {
+	    TableName: table
+	  };
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.query(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve(data.Items.map(function (item) {
+	        return (0, _client.fromDB)(Team, item);
+	      }));
 	    });
 	  });
 	}
@@ -239,9 +307,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  value: true
 	});
 	exports.User = undefined;
-	exports.createUser = createUser;
 	exports.getUser = getUser;
-	exports.getUsers = getUsers;
+	exports.updateUser = updateUser;
 	
 	var _nodeUuid = __webpack_require__(6);
 	
@@ -255,7 +322,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	var table = (0, _client.resolveTableName)('user');
+	var table = (0, _client.resolveTableName)('user-v1');
 	
 	var User = exports.User = function User() {
 	  _classCallCheck(this, User);
@@ -263,51 +330,56 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	;
 	
-	function createUser(user) {
-	  return new Promise(function (resolve, reject) {
-	    user.id = _nodeUuid2.default.v4();
-	    var params = {
-	      TableName: table,
-	      Item: user
-	    };
-	
-	    _client2.default.put(params, function (err, data) {
-	      if (err) return reject(err);
-	      return resolve(user);
-	    });
-	  });
-	}
-	
-	function getUser(teamId, id) {
+	function getUser(id) {
 	  return new Promise(function (resolve, reject) {
 	    var params = {
 	      TableName: table,
-	      Key: { id: id, teamId: teamId }
+	      Key: { id: id }
 	    };
 	
 	    _client2.default.get(params, function (err, data) {
 	      if (err) return reject(err);
-	      var user = (0, _client.fromDB)(User, data.Item);
+	
+	      var user = void 0;
+	      if (data.Item) {
+	        user = (0, _client.fromDB)(User, data.Item);
+	      }
+	
 	      return resolve(user);
 	    });
 	  });
 	}
 	
-	function getUsers(teamId) {
-	  return new Promise(function (resolve, reject) {
-	    var params = {
-	      TableName: table,
-	      KeyConditionExpression: 'teamId = :teamId',
-	      ExpressionAttributeValues: {
-	        ':teamId': teamId
-	      }
-	    };
+	function updateUser(user) {
+	  var now = new Date().toISOString();
+	  var params = {
+	    TableName: table,
+	    Key: { id: user.id },
+	    UpdateExpression: '\n      SET\n        #accessToken = :accessToken,\n        #scopes = :scopes,\n        #teamId = :teamId,\n        #user = :user,\n        #created = if_not_exists(#created, :created),\n        #changed = :changed\n    ',
+	    ExpressionAttributeNames: {
+	      '#accessToken': 'accessToken',
+	      '#scopes': 'scopes',
+	      '#teamId': 'teamId',
+	      '#user': 'user',
+	      '#created': 'created',
+	      '#changed': 'changed'
+	    },
+	    ExpressionAttributeValues: {
+	      ':accessToken': user.accessToken,
+	      ':scopes': user.scopes,
+	      ':teamId': user.teamId,
+	      ':user': user.user,
+	      ':created': now,
+	      ':changed': now
+	    },
+	    ReturnValues: 'ALL_NEW'
+	  };
 	
-	    _client2.default.query(params, function (err, data) {
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.update(params, function (err, data) {
 	      if (err) return reject(err);
-	      return resolve(data.Items.map(function (item) {
-	        return (0, _client.fromDB)(User, item);
-	      }));
+	      user = (0, _client.fromDB)(User, data.Attributes);
+	      return resolve(user);
 	    });
 	  });
 	}
@@ -605,7 +677,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.Bot = exports.uuid = undefined;
+	exports.Bot = undefined;
 	exports.createBot = createBot;
 	exports.getBot = getBot;
 	exports.getBots = getBots;
@@ -622,10 +694,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	exports.uuid = _nodeUuid2.default;
-	
-	
-	var table = (0, _client.resolveTableName)('bot');
+	var table = (0, _client.resolveTableName)('bot-v1');
 	
 	var Bot = exports.Bot = function Bot() {
 	  _classCallCheck(this, Bot);
@@ -633,14 +702,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	;
 	
-	function createBot(bot) {
-	  return new Promise(function (resolve, reject) {
-	    bot.id = uuid.v4();
-	    var params = {
-	      TableName: table,
-	      Item: bot
-	    };
+	function createBot(data) {
+	  var bot = new Bot();
+	  var now = new Date().toISOString();
 	
+	  Object.assign(bot, data);
+	  bot.id = _nodeUuid2.default.v4();
+	  bot.created = now;
+	  bot.changed = now;
+	
+	  var params = {
+	    TableName: table,
+	    Item: bot
+	  };
+	  return new Promise(function (resolve, reject) {
 	    _client2.default.put(params, function (err, data) {
 	      if (err) return reject(err);
 	      return resolve(bot);
@@ -712,7 +787,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
-	var table = (0, _client.resolveTableName)('answer');
+	var table = (0, _client.resolveTableName)('answer-v1');
 	
 	var Answer = exports.Answer = function Answer() {
 	  _classCallCheck(this, Answer);
@@ -721,15 +796,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	;
 	
 	function createAnswer(_ref) {
-	  var teamId = _ref.teamId;
 	  var botId = _ref.botId;
 	
-	  var data = _objectWithoutProperties(_ref, ['teamId', 'botId']);
+	  var data = _objectWithoutProperties(_ref, ['botId']);
 	
 	  var answer = new Answer();
 	  Object.assign(answer, data);
 	  answer.id = _nodeUuid2.default.v4();
-	  answer.teamIdBotId = (0, _client.compositeId)(teamId, botId);
+	  answer.botId = botId;
+	
+	  now = new Date().toISOString();
+	  answer.created = now;
+	  answer.changed = now;
 	
 	  var params = {
 	    TableName: table,
@@ -744,27 +822,32 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 	}
 	
-	function getAnswer(teamIdBotId, id) {
+	function getAnswer(botId, id) {
 	  var params = {
 	    TableName: table,
-	    Key: { id: id, teamIdBotId: teamIdBotId }
+	    Key: { id: id, botId: botId }
 	  };
 	
 	  return new Promise(function (resolve, reject) {
 	    _client2.default.get(params, function (err, data) {
 	      if (err) return reject(err);
-	      var answer = (0, _client.fromDB)(Answer, data.Item);
+	
+	      var answer = void 0;
+	      if (data.Item) {
+	        answer = (0, _client.fromDB)(Answer, data.Item);
+	      }
+	
 	      return resolve(answer);
 	    });
 	  });
 	}
 	
-	function getAnswers(teamId, botId) {
+	function getAnswers(botId) {
 	  var params = {
 	    TableName: table,
-	    KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
+	    KeyConditionExpression: 'botId = :botId',
 	    ExpressionAttributeValues: {
-	      ':teamIdBotId': (0, _client.compositeId)(teamId, botId)
+	      ':botId': botId
 	    }
 	  };
 	
@@ -778,37 +861,40 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 	}
 	
-	function deleteAnswer(teamIdBotId, id) {
+	function deleteAnswer(botId, id) {
 	  var params = {
 	    TableName: table,
-	    Key: { id: id, teamIdBotId: teamIdBotId }
+	    Key: { id: id, botId: botId },
+	    ReturnValues: 'ALL_OLD'
 	  };
 	
 	  return new Promise(function (resolve, reject) {
 	    _client2.default.delete(params, function (err, data) {
 	      if (err) return reject(err);
-	      return resolve();
+	      return resolve((0, _client.fromDB)(Answer, data.Attributes));
 	    });
 	  });
 	}
 	
 	function updateAnswer(_ref2) {
-	  var teamIdBotId = _ref2.teamIdBotId;
+	  var botId = _ref2.botId;
 	  var id = _ref2.id;
 	  var title = _ref2.title;
 	  var body = _ref2.body;
 	
 	  var params = {
 	    TableName: table,
-	    Key: { id: id, teamIdBotId: teamIdBotId },
-	    UpdateExpression: 'SET #t = :t, #b = :b',
+	    Key: { id: id, botId: botId },
+	    UpdateExpression: '\n      SET\n        #title = :title,\n        #body = :body,\n        #changed = :changed\n    ',
 	    ExpressionAttributeNames: {
-	      '#t': 'title',
-	      '#b': 'body'
+	      '#title': 'title',
+	      '#body': 'body',
+	      '#changed': 'changed'
 	    },
 	    ExpressionAttributeValues: {
-	      ':t': title,
-	      ':b': body
+	      ':title': title,
+	      ':body': body,
+	      ':changed': new Date().toISOString()
 	    },
 	    ReturnValues: 'ALL_NEW'
 	  };
@@ -820,6 +906,388 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	  });
 	}
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.Token = undefined;
+	exports.getToken = getToken;
+	exports.createToken = createToken;
+	exports.deleteToken = deleteToken;
+	
+	var _nodeUuid = __webpack_require__(6);
+	
+	var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
+	
+	var _client = __webpack_require__(2);
+	
+	var _client2 = _interopRequireDefault(_client);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var table = (0, _client.resolveTableName)('token-v1');
+	
+	var Token = exports.Token = function Token() {
+	  _classCallCheck(this, Token);
+	};
+	
+	;
+	
+	function getToken(userId, id) {
+	  var params = {
+	    TableName: table,
+	    Key: { id: id, userId: userId }
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.get(params, function (err, data) {
+	      if (err) return reject(err);
+	
+	      var token = void 0;
+	      if (data.Item) {
+	        token = (0, _client.fromDB)(Token, data.Item);
+	      }
+	
+	      return resolve(token);
+	    });
+	  });
+	}
+	
+	function createToken(_ref) {
+	  var userId = _ref.userId;
+	
+	  var data = _objectWithoutProperties(_ref, ['userId']);
+	
+	  var token = new Token();
+	  var now = new Date().toISOString();
+	  Object.assign(token, data);
+	  token.id = _nodeUuid2.default.v4();
+	  token.userId = userId;
+	  token.active = true;
+	  token.created = now;
+	  token.changed = now;
+	
+	  var params = {
+	    TableName: table,
+	    Item: token
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.put(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve(token);
+	    });
+	  });
+	}
+	
+	function deleteToken(id, userId) {
+	  var params = {
+	    TableName: table,
+	    Key: { id: id, userId: userId }
+	  };
+	
+	  return new Promise(function (resolve, reject) {
+	    _client2.default.delete(params, function (err, data) {
+	      if (err) return reject(err);
+	      return resolve();
+	    });
+	  });
+	};
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _storage = __webpack_require__(12);
+	
+	Object.defineProperty(exports, 'storage', {
+	  enumerable: true,
+	  get: function get() {
+	    return _interopRequireDefault(_storage).default;
+	  }
+	});
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _team = __webpack_require__(4);
+	
+	var _user = __webpack_require__(5);
+	
+	var _bot = __webpack_require__(8);
+	
+	function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
+	
+	exports.default = {
+	  teams: {
+	    get: function () {
+	      var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee(id, cb) {
+	        var team;
+	        return regeneratorRuntime.wrap(function _callee$(_context) {
+	          while (1) {
+	            switch (_context.prev = _context.next) {
+	              case 0:
+	                team = void 0;
+	                _context.prev = 1;
+	                _context.next = 4;
+	                return (0, _team.getTeam)(id);
+	
+	              case 4:
+	                team = _context.sent;
+	                _context.next = 10;
+	                break;
+	
+	              case 7:
+	                _context.prev = 7;
+	                _context.t0 = _context['catch'](1);
+	                return _context.abrupt('return', cb(_context.t0));
+	
+	              case 10:
+	                return _context.abrupt('return', cb(null, team));
+	
+	              case 11:
+	              case 'end':
+	                return _context.stop();
+	            }
+	          }
+	        }, _callee, undefined, [[1, 7]]);
+	      }));
+	
+	      return function get(_x, _x2) {
+	        return ref.apply(this, arguments);
+	      };
+	    }(),
+	
+	    save: function () {
+	      var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee2(_ref, cb) {
+	        var data = _ref.team;
+	        var isnew = _ref.isnew;
+	        var team;
+	        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+	          while (1) {
+	            switch (_context2.prev = _context2.next) {
+	              case 0:
+	                team = void 0;
+	                _context2.prev = 1;
+	                _context2.next = 4;
+	                return (0, _team.updateTeam)(data);
+	
+	              case 4:
+	                team = _context2.sent;
+	                _context2.next = 10;
+	                break;
+	
+	              case 7:
+	                _context2.prev = 7;
+	                _context2.t0 = _context2['catch'](1);
+	                return _context2.abrupt('return', cb(_context2.t0));
+	
+	              case 10:
+	                if (!isnew) {
+	                  _context2.next = 19;
+	                  break;
+	                }
+	
+	                _context2.prev = 11;
+	                _context2.next = 14;
+	                return (0, _bot.createBot)({ teamId: team.id });
+	
+	              case 14:
+	                _context2.next = 19;
+	                break;
+	
+	              case 16:
+	                _context2.prev = 16;
+	                _context2.t1 = _context2['catch'](11);
+	                return _context2.abrupt('return', cb(_context2.t1));
+	
+	              case 19:
+	                return _context2.abrupt('return', cb(null, team));
+	
+	              case 20:
+	              case 'end':
+	                return _context2.stop();
+	            }
+	          }
+	        }, _callee2, undefined, [[1, 7], [11, 16]]);
+	      }));
+	
+	      return function save(_x3, _x4) {
+	        return ref.apply(this, arguments);
+	      };
+	    }(),
+	
+	    all: function () {
+	      var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee3(cb) {
+	        var teams;
+	        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+	          while (1) {
+	            switch (_context3.prev = _context3.next) {
+	              case 0:
+	                teams = void 0;
+	                _context3.prev = 1;
+	                _context3.next = 4;
+	                return (0, _team.getTeams)();
+	
+	              case 4:
+	                teams = _context3.sent;
+	                _context3.next = 10;
+	                break;
+	
+	              case 7:
+	                _context3.prev = 7;
+	                _context3.t0 = _context3['catch'](1);
+	                return _context3.abrupt('return', cb(_context3.t0));
+	
+	              case 10:
+	                return _context3.abrupt('return', cb(null, teams));
+	
+	              case 11:
+	              case 'end':
+	                return _context3.stop();
+	            }
+	          }
+	        }, _callee3, undefined, [[1, 7]]);
+	      }));
+	
+	      return function all(_x5) {
+	        return ref.apply(this, arguments);
+	      };
+	    }()
+	
+	  },
+	  users: {
+	    get: function () {
+	      var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee4(id, cb) {
+	        var user;
+	        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+	          while (1) {
+	            switch (_context4.prev = _context4.next) {
+	              case 0:
+	                user = void 0;
+	                _context4.prev = 1;
+	                _context4.next = 4;
+	                return (0, _user.getUser)(id);
+	
+	              case 4:
+	                user = _context4.sent;
+	                _context4.next = 10;
+	                break;
+	
+	              case 7:
+	                _context4.prev = 7;
+	                _context4.t0 = _context4['catch'](1);
+	                return _context4.abrupt('return', cb(_context4.t0));
+	
+	              case 10:
+	                return _context4.abrupt('return', cb(null, user));
+	
+	              case 11:
+	              case 'end':
+	                return _context4.stop();
+	            }
+	          }
+	        }, _callee4, undefined, [[1, 7]]);
+	      }));
+	
+	      return function get(_x6, _x7) {
+	        return ref.apply(this, arguments);
+	      };
+	    }(),
+	
+	    save: function () {
+	      var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee5(_ref2, cb) {
+	        var data = _ref2.user;
+	        var isnew = _ref2.isnew;
+	        var user;
+	        return regeneratorRuntime.wrap(function _callee5$(_context5) {
+	          while (1) {
+	            switch (_context5.prev = _context5.next) {
+	              case 0:
+	                // transform values from slack to camelcase
+	                if (data.access_token) {
+	                  data.accessToken = data.access_token;
+	                  delete data.access_token;
+	                }
+	
+	                if (data.team_id) {
+	                  data.teamId = data.team_id;
+	                  delete data.team_id;
+	                }
+	
+	                user = void 0;
+	                _context5.prev = 3;
+	                _context5.next = 6;
+	                return (0, _user.updateUser)(data);
+	
+	              case 6:
+	                user = _context5.sent;
+	                _context5.next = 12;
+	                break;
+	
+	              case 9:
+	                _context5.prev = 9;
+	                _context5.t0 = _context5['catch'](3);
+	                return _context5.abrupt('return', cb(_context5.t0));
+	
+	              case 12:
+	                return _context5.abrupt('return', cb(null, user));
+	
+	              case 13:
+	              case 'end':
+	                return _context5.stop();
+	            }
+	          }
+	        }, _callee5, undefined, [[3, 9]]);
+	      }));
+	
+	      return function save(_x8, _x9) {
+	        return ref.apply(this, arguments);
+	      };
+	    }(),
+	
+	    // We should never want to return all the users in the system
+	    all: function all(cb) {
+	      return cb(new Error('Not implemented'));
+	    }
+	  },
+	  channels: {
+	    get: function get(_, cb) {
+	      return cb(new Error('Not implemented'));
+	    },
+	    save: function save(_, cb) {
+	      return cb(new Error('Not implemented'));
+	    },
+	    all: function all(cb) {
+	      return cb(new Error('Not implemented'));
+	    }
+	  }
+	};
 
 /***/ }
 /******/ ])

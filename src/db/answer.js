@@ -2,15 +2,19 @@ import uuid from 'node-uuid';
 
 import client, { compositeId, fromDB, resolveTableName } from './client';
 
-const table = resolveTableName('answer');
+const table = resolveTableName('answer-v1');
 
 export class Answer {};
 
-export function createAnswer({ teamId, botId, ...data }) {
+export function createAnswer({ botId, ...data }) {
   const answer = new Answer();
   Object.assign(answer, data);
   answer.id = uuid.v4();
-  answer.teamIdBotId = compositeId(teamId, botId);
+  answer.botId = botId;
+
+  now = new Date().toISOString();
+  answer.created = now;
+  answer.changed = now;
 
   const params = {
     TableName: table,
@@ -25,27 +29,32 @@ export function createAnswer({ teamId, botId, ...data }) {
   });
 }
 
-export function getAnswer(teamIdBotId, id) {
+export function getAnswer(botId, id) {
   const params = {
     TableName: table,
-    Key: { id, teamIdBotId },
+    Key: { id, botId },
   };
 
   return new Promise((resolve, reject) => {
     client.get(params, (err, data) => {
       if (err) return reject(err);
-      const answer = fromDB(Answer, data.Item);
+
+      let answer;
+      if (data.Item) {
+        answer = fromDB(Answer, data.Item);
+      }
+
       return resolve(answer);
     });
   });
 }
 
-export function getAnswers(teamId, botId) {
+export function getAnswers(botId) {
   const params = {
     TableName: table,
-    KeyConditionExpression: 'teamIdBotId = :teamIdBotId',
+    KeyConditionExpression: 'botId = :botId',
     ExpressionAttributeValues: {
-      ':teamIdBotId': compositeId(teamId, botId),
+      ':botId': botId,
     },
   };
 
@@ -57,32 +66,40 @@ export function getAnswers(teamId, botId) {
   });
 }
 
-export function deleteAnswer(teamIdBotId, id) {
+export function deleteAnswer(botId, id) {
   const params = {
     TableName: table,
-    Key: { id, teamIdBotId },
+    Key: { id, botId },
+    ReturnValues: 'ALL_OLD',
   };
 
   return new Promise((resolve, reject) => {
     client.delete(params, (err, data) => {
       if (err) return reject(err);
-      return resolve();
+      return resolve(fromDB(Answer, data.Attributes));
     });
   });
 }
 
-export function updateAnswer({ teamIdBotId, id, title, body }) {
+export function updateAnswer({ botId, id, title, body }) {
   const params = {
     TableName: table,
-    Key: { id, teamIdBotId },
-    UpdateExpression: 'SET #t = :t, #b = :b',
+    Key: { id, botId },
+    UpdateExpression:`
+      SET
+        #title = :title,
+        #body = :body,
+        #changed = :changed
+    `,
     ExpressionAttributeNames: {
-      '#t': 'title',
-      '#b': 'body',
+      '#title': 'title',
+      '#body': 'body',
+      '#changed': 'changed',
     },
     ExpressionAttributeValues: {
-      ':t': title,
-      ':b': body,
+      ':title': title,
+      ':body': body,
+      ':changed': new Date().toISOString(),
     },
     ReturnValues: 'ALL_NEW',
   };

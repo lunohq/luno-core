@@ -1,19 +1,25 @@
-export uuid from 'node-uuid';
+import uuid from 'node-uuid';
 
 import client, { fromDB, resolveTableName } from './client';
 
-const table = resolveTableName('bot');
+const table = resolveTableName('bot-v1');
 
 export class Bot {};
 
-export function createBot(bot) {
-  return new Promise((resolve, reject) => {
-    bot.id = uuid.v4();
-    const params = {
-      TableName: table,
-      Item: bot,
-    };
+export function createBot(data) {
+  const bot = new Bot();
+  const now = new Date().toISOString();
 
+  Object.assign(bot, data);
+  bot.id = uuid.v4();
+  bot.created = now;
+  bot.changed = now;
+
+  const params = {
+    TableName: table,
+    Item: bot,
+  };
+  return new Promise((resolve, reject) => {
     client.put(params, (err, data) => {
       if (err) return reject(err);
       return resolve(bot);

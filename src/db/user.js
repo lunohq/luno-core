@@ -2,53 +2,68 @@ import uuid from 'node-uuid';
 
 import client, { fromDB, resolveTableName } from './client';
 
-const table = resolveTableName('user');
+const table = resolveTableName('user-v1');
 
 export class User {};
 
-export function createUser(user) {
-  return new Promise((resolve, reject) => {
-    user.id = uuid.v4();
-    const params = {
-      TableName: table,
-      Item: user,
-    };
-
-    client.put(params, (err, data) => {
-      if (err) return reject(err);
-      return resolve(user);
-    });
-  });
-}
-
-export function getUser(teamId, id) {
+export function getUser(id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
-      Key: { id, teamId },
+      Key: { id },
     };
 
     client.get(params, (err, data) => {
       if (err) return reject(err);
-      const user = fromDB(User, data.Item);
+
+      let user;
+      if (data.Item) {
+        user = fromDB(User, data.Item);
+      }
+
       return resolve(user);
     });
   });
 }
 
-export function getUsers(teamId) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      KeyConditionExpression: 'teamId = :teamId',
-      ExpressionAttributeValues: {
-        ':teamId': teamId,
-      },
-    };
+export function updateUser(user) {
+  const now = new Date().toISOString();
+  const params = {
+    TableName: table,
+    Key: { id: user.id },
+    UpdateExpression:`
+      SET
+        #accessToken = :accessToken,
+        #scopes = :scopes,
+        #teamId = :teamId,
+        #user = :user,
+        #created = if_not_exists(#created, :created),
+        #changed = :changed
+    `,
+    ExpressionAttributeNames: {
+      '#accessToken': 'accessToken',
+      '#scopes': 'scopes',
+      '#teamId': 'teamId',
+      '#user': 'user',
+      '#created': 'created',
+      '#changed': 'changed',
+    },
+    ExpressionAttributeValues: {
+      ':accessToken': user.accessToken,
+      ':scopes': user.scopes,
+      ':teamId': user.teamId,
+      ':user': user.user,
+      ':created': now,
+      ':changed': now,
+    },
+    ReturnValues: 'ALL_NEW',
+  };
 
-    client.query(params, (err, data) => {
+  return new Promise((resolve, reject) => {
+    client.update(params, (err, data) => {
       if (err) return reject(err);
-      return resolve(data.Items.map((item) => fromDB(User, item)));
+      user = fromDB(User, data.Attributes);
+      return resolve(user);
     });
   });
 }
