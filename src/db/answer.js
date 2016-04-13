@@ -1,6 +1,7 @@
 import uuid from 'node-uuid';
 
 import client, { compositeId, fromDB, resolveTableName } from './client';
+import * as es from '../es/answer';
 
 const table = resolveTableName('answer-v1');
 
@@ -22,8 +23,15 @@ export function createAnswer({ botId, ...data }) {
   };
 
   return new Promise((resolve, reject) => {
-    client.put(params, (err, data) => {
+    client.put(params, async (err, data) => {
       if (err) return reject(err);
+
+      try {
+        await es.indexAnswer(answer);
+      } catch (err) {
+        return reject(err);
+      }
+
       return resolve(answer);
     });
   });
@@ -74,8 +82,15 @@ export function deleteAnswer(botId, id) {
   };
 
   return new Promise((resolve, reject) => {
-    client.delete(params, (err, data) => {
+    client.delete(params, async (err, data) => {
       if (err) return reject(err);
+
+      try {
+        await es.deleteAnswer(id);
+      } catch (err) {
+        return reject(err);
+      }
+
       return resolve(fromDB(Answer, data.Attributes));
     });
   });
@@ -105,9 +120,17 @@ export function updateAnswer({ botId, id, title, body }) {
   };
 
   return new Promise((resolve, reject) => {
-    client.update(params, (err, data) => {
+    client.update(params, async (err, data) => {
       if (err) return reject(err);
-      return resolve(fromDB(Answer, data.Attributes));
+      const answer = fromDB(Answer, data.Attributes);
+
+      try {
+        await es.indexAnswer(answer);
+      } catch (err) {
+        return reject(err);
+      }
+
+      return resolve(answer);
     });
   });
 }
