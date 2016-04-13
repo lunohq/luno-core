@@ -1,4 +1,5 @@
 import AWS from 'aws-sdk';
+import config from '../config';
 
 /**
  * Return a table name for the model based on env variables.
@@ -7,8 +8,7 @@ import AWS from 'aws-sdk';
  * @return {String} resolved table name
  */
 export function resolveTableName(model) {
-  const { env: { STAGE } } = process;
-  return `${STAGE}-${model}`;
+  return `${config.stage}-${model}`;
 }
 
 /**

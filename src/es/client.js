@@ -1,6 +1,7 @@
 import AWS from 'aws-sdk';
 import { Client } from 'elasticsearch';
 import connector from 'http-aws-es';
+import env from '../config';
 
 const indices = {
   write: 'luno-bot-write',
@@ -26,10 +27,10 @@ function credentials() {
 
 export default new Client({
   apiVersion: '1.5',
-  host: process.env.ES_HOST,
+  host: env.es.host,
   connectionClass: connector,
   amazonES: {
-    region: process.env.AWS_REGION,
+    region: env.aws.region,
     credentials: credentials(),
   },
 });
