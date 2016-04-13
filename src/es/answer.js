@@ -11,7 +11,7 @@ export function indexAnswer({ id, ...body }) {
       body,
     }, (err, res) => {
       if (err) return reject(err);
-      resolve(res);
+      return resolve(res);
     });
   });
 }
@@ -24,7 +24,38 @@ export function deleteAnswer(id) {
       id,
     }, (err, res) => {
       if (err && err.status !== 404) return reject(err);
-      resolve(res);
+      return resolve(res);
+    });
+  });
+}
+
+export function search(botId, query) {
+  const body = {
+    query: {
+      filtered: {
+        query: {
+          bool: {
+            should: [
+              { match: { title: query } },
+              { match: { body: query } },
+            ],
+          },
+        },
+        filter: {
+          term: { botId: botId },
+        },
+      },
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    client.search({
+      ...config.read,
+      type,
+      body,
+    }, (err, res) => {
+      if (err) return reject(err);
+      return resolve(res);
     });
   });
 }
