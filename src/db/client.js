@@ -1,3 +1,5 @@
+import AWS from 'aws-sdk';
+
 /**
  * Return a table name for the model based on env variables.
  *
@@ -41,8 +43,4 @@ export function deconstructId(id) {
   return id.split('_');
 }
 
-export default (() => {
-  const AWS = require('aws-sdk');
-  const DocumentClient = AWS.DynamoDB.DocumentClient;
-  return new DocumentClient();
-})();
+export default new AWS.DynamoDB.DocumentClient();
