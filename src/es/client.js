@@ -14,12 +14,22 @@ export const config = {
   },
 };
 
+function credentials() {
+  return new Promise((resolve, reject) => {
+    const provider = new AWS.CredentialProviderChain();
+    provider.resolve((err, creds) => {
+      if (err) return reject(err);
+      resolve(creds);
+    });
+  });
+}
+
 export default new Client({
   apiVersion: '1.5',
   host: process.env.ES_HOST,
   connectionClass: connector,
   amazonES: {
     region: process.env.AWS_REGION,
-    credentials: AWS.Config.prototype.keys.credentials(),
+    credentials: credentials(),
   },
 });
