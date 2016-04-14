@@ -30,11 +30,15 @@ export function getTeam(id) {
  * @param {Team} team a team stored in the db
  * @return {Object} team as if it came from slack
  */
-export function toSlackTeam({ createdBy, name, slack }) {
+export function toSlackTeam({ id: teamId, createdBy, name, slack }, { id: botId }) {
   const slackTeam = Object.assign({}, { createdBy, name });
   slackTeam.bot = slack.bot;
   slackTeam.url = slack.url;
   slackTeam.token = slack.token;
+  slackTeam.luno = {
+    teamId,
+    botId,
+  };
   return slackTeam;
 }
 

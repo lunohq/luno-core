@@ -101,7 +101,7 @@ function watch() {
 
 // Run build while we make changes
 function building() {
-  gulp.watch(watchFiles, ['build']);
+  gulp.watch(['src/**/*'], ['build']);
 }
 
 // Remove the built files

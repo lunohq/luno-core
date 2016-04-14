@@ -2,5 +2,7 @@
   "preset": "airbnb",
   "maximumLineLength": null,
   "esnext": true,
-  "disallowSpacesInsideObjectBrackets": null
+  "disallowSpacesInsideObjectBrackets": null,
+  "requirePaddingNewLinesBeforeLineComments": null,
+  "requirePaddingNewLinesAfterBlocks": null
 }
