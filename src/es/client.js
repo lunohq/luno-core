@@ -29,6 +29,7 @@ export default new Client({
   apiVersion: '1.5',
   host: env.es.host,
   connectionClass: connector,
+  log: 'trace',
   amazonES: {
     region: env.aws.region,
     credentials: credentials(),
