@@ -64,6 +64,8 @@ export function getAnswers(botId) {
     ExpressionAttributeValues: {
       ':botId': botId,
     },
+    IndexName: 'AnswerBotIdCreated',
+    ScanIndexForward: false,
   };
 
   return new Promise((resolve, reject) => {
