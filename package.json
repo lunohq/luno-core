@@ -65,7 +65,7 @@
     "aws-sdk": "^2.3.2",
     "bluebird": "^3.3.5",
     "elasticsearch": "^11.0.0",
-    "http-aws-es": "git+https://github.com/lunohq/http-aws-es.git#25948852cf7a26c0b2f98ebffd09954afeb7fb79",
+    "http-aws-es": "git+https://github.com/lunohq/http-aws-es.git#14c4c70f93c920b014a33b52554bf430a1c37efe",
     "node-uuid": "^1.4.7",
     "redis": "^2.6.0-1"
   }
