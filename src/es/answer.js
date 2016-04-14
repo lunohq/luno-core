@@ -37,7 +37,6 @@ export function search(botId, query) {
           bool: {
             should: [
               { match: { title: query } },
-              { match: { body: query } },
             ],
           },
         },
