@@ -58,3 +58,16 @@ export function getBots(teamId) {
     });
   });
 }
+
+export function allBots() {
+  return new Promise((resolve, reject) => {
+    const params = {
+      TableName: table,
+    };
+
+    client.scan(params, (err, data) => {
+      if (err) return reject(err);
+      return resolve(data.Items.map((item) => fromDB(Bot, item)));
+    });
+  });
+}

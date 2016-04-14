@@ -24,6 +24,20 @@ export function getTeam(id) {
   });
 }
 
+/**
+ * Convert our representation of a team to a slack team.
+ *
+ * @param {Team} team a team stored in the db
+ * @return {Object} team as if it came from slack
+ */
+export function toSlackTeam({ createdBy, name, slack }) {
+  const slackTeam = Object.assign({}, { createdBy, name });
+  slackTeam.bot = slack.bot;
+  slackTeam.url = slack.url;
+  slackTeam.token = slack.token;
+  return slackTeam;
+}
+
 export function updateTeam(team) {
 
   // normalize to camel case
@@ -77,7 +91,7 @@ export function getTeams() {
     TableName: table,
   };
   return new Promise((resolve, reject) => {
-    client.query(params, (err, data) => {
+    client.scan(params, (err, data) => {
       if (err) return reject(err);
       return resolve(data.Items.map((item) => fromDB(Team, item)));
     });
