@@ -1,6 +1,31 @@
 import AWS from 'aws-sdk';
 import config from '../config';
 
+class Client extends AWS.DynamoDB.DocumentClient {
+
+  /**
+   * Return all items that match the query.
+   *
+   * @param {Object} params the query params
+   * @param {Function} cb callback
+   * @param {Array} items array of items that will be returned
+   */
+  queryAll(params, cb, items = []) {
+    this.query(params, (err, data) => {
+      if (err) return cb(err);
+      items.push(...data.Items);
+      const { LastEvaluatedKey } = data;
+      if (LastEvaluatedKey) {
+        const nextParams = Object.assign({}, params, { LastEvaluatedKey });
+        this.queryAll(nextParams, cb, items);
+      } else {
+        cb(null, items);
+      }
+    });
+  }
+
+}
+
 /**
  * Return a table name for the model based on env variables.
  *
@@ -43,4 +68,5 @@ export function deconstructId(id) {
   return id.split('_');
 }
 
-export default new AWS.DynamoDB.DocumentClient();
+// XXX We shouldn't instantly connect to DynamoDB like this
+export default new Client();

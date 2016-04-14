@@ -67,9 +67,9 @@ export function getAnswers(botId) {
   };
 
   return new Promise((resolve, reject) => {
-    client.query(params, (err, data) => {
+    client.queryAll(params, (err, items) => {
       if (err) return reject(err);
-      return resolve(data.Items.map((item) => fromDB(Answer, item)));
+      return resolve(items.map((item) => fromDB(Answer, item)));
     });
   });
 }

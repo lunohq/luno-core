@@ -25,6 +25,7 @@ function credentials() {
   });
 }
 
+// XXX we shouldn't instantly connect to ES like this
 export default new Client({
   apiVersion: '1.5',
   host: env.es.host,
