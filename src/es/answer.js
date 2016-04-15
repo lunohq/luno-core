@@ -34,10 +34,11 @@ export function search(botId, query) {
     query: {
       filtered: {
         query: {
-          bool: {
-            should: [
-              { match: { title: query } },
-            ],
+          common: {
+            title: {
+              query,
+              cutoff_frequency: 0.001,
+            },
           },
         },
         filter: {
