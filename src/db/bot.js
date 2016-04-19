@@ -99,7 +99,7 @@ export function updateBot({ id, teamId, purpose, pointsOfContact }) {
   return new Promise((resolve, reject) => {
     client.update(params, (err, data) => {
       if (err) return reject(err);
-      bot = fromDB(Bot, data.Attributes);
+      const bot = fromDB(Bot, data.Attributes);
       return resolve(bot);
     });
   });
