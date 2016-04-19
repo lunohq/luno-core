@@ -88,7 +88,7 @@ export function deleteAnswer(botId, id) {
       if (err) return reject(err);
 
       try {
-        await es.deleteAnswer(id);
+        await es.deleteAnswer(botId, id);
       } catch (err) {
         return reject(err);
       }

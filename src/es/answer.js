@@ -9,6 +9,7 @@ export function indexAnswer({ id, ...body }) {
       type,
       id,
       body,
+      routing: body.botId,
     }, (err, res) => {
       if (err) return reject(err);
       return resolve(res);
@@ -16,12 +17,13 @@ export function indexAnswer({ id, ...body }) {
   });
 }
 
-export function deleteAnswer(id) {
+export function deleteAnswer(botId, id) {
   return new Promise((resolve, reject) => {
     client.delete({
       ...config.write,
       type,
       id,
+      routing: botId,
     }, (err, res) => {
       if (err && err.status !== 404) return reject(err);
       return resolve(res);
