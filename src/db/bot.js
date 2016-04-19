@@ -71,3 +71,36 @@ export function allBots() {
     });
   });
 }
+
+export function updateBot({ id, teamId, purpose, pointsOfContact }) {
+  const now = new Date().toISOString();
+  const params = {
+    TableName: table,
+    Key: { id, teamId },
+    UpdateExpression:`
+      SET
+        #pointsOfContact = :pointsOfContact,
+        #purpose = :purpose,
+        #changed = :changed
+    `,
+    ExpressionAttributeNames: {
+      '#pointsOfContact': 'pointsOfContact',
+      '#purpose': 'purpose',
+      '#changed': 'changed',
+    },
+    ExpressionAttributeValues: {
+      ':pointsOfContact': pointsOfContact,
+      ':purpose': purpose,
+      ':changed': now,
+    },
+    ReturnValues: 'ALL_NEW',
+  };
+
+  return new Promise((resolve, reject) => {
+    client.update(params, (err, data) => {
+      if (err) return reject(err);
+      const bot = fromDB(Bot, data.Attributes);
+      return resolve(bot);
+    });
+  });
+}
