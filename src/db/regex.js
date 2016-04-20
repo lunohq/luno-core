@@ -2,12 +2,12 @@ import uuid from 'node-uuid';
 
 import client, { fromDB, resolveTableName } from './client';
 
-const table = resolveTableName('regex-response-v1');
+const table = resolveTableName('regex-v1');
 
-export class RegexResponse {};
+export class Regex {};
 
-export function createRegexResponse({ botId, ...data }) {
-  const regexResponse = new RegexResponse();
+export function createRegex({ botId, ...data }) {
+  const regexResponse = new Regex();
   Object.assign(regexResponse, data);
   regexResponse.id = uuid.v4();
   regexResponse.botId = botId;
@@ -30,25 +30,25 @@ export function createRegexResponse({ botId, ...data }) {
   });
 }
 
-export function getRegexResponses(botId) {
+export function getRegexes(botId) {
   const params = {
     TableName: table,
     KeyConditionExpression: 'botId = :botId',
     ExpressionAttributeValues: {
       ':botId': botId,
     },
-    IndexName: 'RegexResponseBotIdOrder',
+    IndexName: 'RegexBotIdPosition',
   };
 
   return new Promise((resolve, reject) => {
     client.queryAll(params, (err, items) => {
       if (err) return reject(err);
-      return resolve(items.map((item) => fromDB(RegexResponse, item)));
+      return resolve(items.map((item) => fromDB(Regex, item)));
     });
   });
 }
 
-export function getRegexResponse(id) {
+export function getRegex(id) {
   const params = {
     TableName: table,
     Key: { id },
@@ -60,7 +60,7 @@ export function getRegexResponse(id) {
 
       let regexResponse;
       if (data.Item) {
-        regexResponse = fromDB(RegexResponse, data.Item);
+        regexResponse = fromDB(Regex, data.Item);
       }
 
       return resolve(regexResponse);
@@ -68,7 +68,7 @@ export function getRegexResponse(id) {
   });
 }
 
-export function deleteRegexResponse(botId, id) {
+export function deleteRegex(botId, id) {
   const params = {
     TableName: table,
     Key: { id, botId },
@@ -78,12 +78,12 @@ export function deleteRegexResponse(botId, id) {
   return new Promise((resolve, reject) => {
     client.delete(params, (err, data) => {
       if (err) return reject(err);
-      return resolve(fromDB(RegexResponse, data.Attributes));
+      return resolve(fromDB(Regex, data.Attributes));
     });
   });
 }
 
-export function updateRegexResponse({ botId, id, regex, body }) {
+export function updateRegex({ botId, id, regex, body, position }) {
   const now = new Date().toISOString();
   const params = {
     TableName: table,
@@ -92,17 +92,20 @@ export function updateRegexResponse({ botId, id, regex, body }) {
       SET
         #regex = :regex,
         #body = :body,
-        #changed = :changed
+        #changed = :changed,
+        #position = :position
     `,
     ExpressionAttributeNames: {
       '#regex': 'regex',
       '#body': 'body',
       '#changed': 'changed',
+      '#position': 'position',
     },
     ExpressionAttributeValues: {
       ':regex': regex,
       ':body': body,
       ':changed': new Date().toISOString(),
+      ':position': position,
     },
     ReturnValues: 'ALL_NEW',
   };
@@ -110,8 +113,8 @@ export function updateRegexResponse({ botId, id, regex, body }) {
   return new Promise((resolve, reject) => {
     client.update(params, (err, data) => {
       if (err) return reject(err);
-      const answer = fromDB(RegexResponse, data.Attributes);
-      return resolve(answer);
+      const regex = fromDB(Regex, data.Attributes);
+      return resolve(regex);
     });
   });
 }
