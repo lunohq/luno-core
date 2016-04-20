@@ -73,3 +73,20 @@ export function updateUser(user) {
     });
   });
 }
+
+export function getUsers(teamId) {
+  const params = {
+    TableName: table,
+    FilterExpression: 'teamId = :teamId',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    client.scan(params, (err, data) => {
+      if (err) return reject(err);
+      return resolve(data.Items.map((item) => fromDB(User, item)));
+    });
+  });
+}
