@@ -30,7 +30,6 @@ export default new Client({
   apiVersion: '1.5',
   host: env.es.host,
   connectionClass: connector,
-  requestTimeout: 500,
   log: 'trace',
   amazonES: {
     region: env.aws.region,
