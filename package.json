@@ -64,7 +64,7 @@
   "dependencies": {
     "aws-sdk": "^2.3.2",
     "bluebird": "^3.3.5",
-    "elasticsearch": "^11.0.0",
+    "elasticsearch": "git+https://github.com/lunohq/elasticsearch-js.git#418c0c6916a218eec6363847a8dfcead7fc2069c",
     "http-aws-es": "git+https://github.com/lunohq/http-aws-es.git#14c4c70f93c920b014a33b52554bf430a1c37efe",
     "node-uuid": "^1.4.7",
     "redis": "^2.6.0-1"

@@ -1,6 +1,8 @@
-import client, { config } from './client';
+import getClient, { config } from './getClient';
 
 const type = 'answer';
+
+const client = getClient();
 
 export function indexAnswer({ id, ...body }) {
   return new Promise((resolve, reject) => {
