@@ -1,27 +1,27 @@
-import client, { fromDB, resolveTableName } from './client';
+import client, { fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('team-v1');
+const table = resolveTableName('team-v1')
 
-export class Team {};
+export class Team {}
 
 export function getTeam(id) {
   const params = {
     TableName: table,
     Key: { id },
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.get(params, (err, data) => {
-      if (err) return reject(err);
+      if (err) return reject(err)
 
-      let team;
+      let team
       if (data.Item) {
-        team = fromDB(Team, data.Item);
+        team = fromDB(Team, data.Item)
       }
 
-      return resolve(team);
-    });
-  });
+      return resolve(team)
+    })
+  })
 }
 
 /**
@@ -31,24 +31,24 @@ export function getTeam(id) {
  * @return {Object} team as if it came from slack
  */
 export function toSlackTeam({ id: teamId, createdBy, name, slack }, { id: botId }) {
-  const slackTeam = Object.assign({}, { createdBy, name });
-  slackTeam.bot = slack.bot;
-  slackTeam.url = slack.url;
-  slackTeam.token = slack.token;
+  const slackTeam = Object.assign({}, { createdBy, name })
+  slackTeam.bot = slack.bot
+  slackTeam.url = slack.url
+  slackTeam.token = slack.token
   slackTeam.luno = {
     teamId,
     botId,
-  };
-  return slackTeam;
+  }
+  return slackTeam
 }
 
 export function updateTeam(team) {
 
   // normalize to camel case
-  team.bot.userId = team.bot.user_id;
-  delete team.bot.user_id;
+  team.bot.userId = team.bot.user_id
+  delete team.bot.user_id
 
-  const now = new Date().toISOString();
+  const now = new Date().toISOString()
   const params = {
     TableName: table,
     Key: { id: team.id },
@@ -79,25 +79,25 @@ export function updateTeam(team) {
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.update(params, (err, data) => {
-      if (err) return reject(err);
-      const team = fromDB(Team, data.Attributes);
-      return resolve(team);
-    });
-  });
+      if (err) return reject(err)
+      const team = fromDB(Team, data.Attributes)
+      return resolve(team)
+    })
+  })
 }
 
 export function getTeams() {
   const params = {
     TableName: table,
-  };
+  }
   return new Promise((resolve, reject) => {
     client.scan(params, (err, data) => {
-      if (err) return reject(err);
-      return resolve(data.Items.map((item) => fromDB(Team, item)));
-    });
-  });
+      if (err) return reject(err)
+      return resolve(data.Items.map((item) => fromDB(Team, item)))
+    })
+  })
 }

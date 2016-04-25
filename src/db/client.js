@@ -1,5 +1,5 @@
-import AWS from 'aws-sdk';
-import config from '../config';
+import AWS from 'aws-sdk'
+import config from '../config'
 
 class Client extends AWS.DynamoDB.DocumentClient {
 
@@ -12,16 +12,16 @@ class Client extends AWS.DynamoDB.DocumentClient {
    */
   queryAll(params, cb, items = []) {
     this.query(params, (err, data) => {
-      if (err) return cb(err);
-      items.push(...data.Items);
-      const { LastEvaluatedKey } = data;
+      if (err) return cb(err)
+      items.push(...data.Items)
+      const { LastEvaluatedKey } = data
       if (LastEvaluatedKey) {
-        const nextParams = Object.assign({}, params, { LastEvaluatedKey });
-        this.queryAll(nextParams, cb, items);
+        const nextParams = Object.assign({}, params, { LastEvaluatedKey })
+        this.queryAll(nextParams, cb, items)
       } else {
-        cb(null, items);
+        cb(null, items)
       }
-    });
+    })
   }
 
 }
@@ -33,7 +33,7 @@ class Client extends AWS.DynamoDB.DocumentClient {
  * @return {String} resolved table name
  */
 export function resolveTableName(model) {
-  return `${config.stage}-${model}`;
+  return `${config.stage}-${model}`
 }
 
 /**
@@ -44,8 +44,8 @@ export function resolveTableName(model) {
  * @return {Object} returns the inflated model
  */
 export function fromDB(Model, data) {
-  const model = new Model();
-  return Object.assign(model, data);
+  const model = new Model()
+  return Object.assign(model, data)
 }
 
 /**
@@ -55,7 +55,7 @@ export function fromDB(Model, data) {
  * @return {String} returns the composite id
  */
 export function compositeId(...parts) {
-  return parts.join('_');
+  return parts.join('_')
 }
 
 /**
@@ -65,8 +65,8 @@ export function compositeId(...parts) {
  * @return {Array[String]} composite id parts
  */
 export function deconstructId(id) {
-  return id.split('_');
+  return id.split('_')
 }
 
 // XXX We shouldn't instantly connect to DynamoDB like this
-export default new Client();
+export default new Client()

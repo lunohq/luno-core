@@ -1,13 +1,13 @@
-import getClient from './redis/getClient';
+import getClient from './redis/getClient'
 
 const events = {
   CREATE_BOT: 'CREATE_BOT',
-};
+}
 
-const handlers = {};
+const handlers = {}
 
-let client;
-let subscribed = false;
+let client
+let subscribed = false
 
 /**
  * Publish an event, instantiating the redis client if necessary
@@ -17,9 +17,9 @@ let subscribed = false;
  */
 function publish(event, message) {
   if (!client) {
-    client = getClient();
+    client = getClient()
   }
-  client.publish(event, message);
+  client.publish(event, message)
 }
 
 /**
@@ -27,17 +27,17 @@ function publish(event, message) {
  */
 function ensureSubscribed() {
   if (!client) {
-    client = getClient();
+    client = getClient()
   }
 
   if (!subscribed) {
-    subscribed = true;
+    subscribed = true
     client.on('message', (channel, message) => {
-      const funcs = handlers[channel] || [];
+      const funcs = handlers[channel] || []
       for (const func of funcs) {
-        func(channel, message);
+        func(channel, message)
       }
-    });
+    })
   }
 }
 
@@ -50,35 +50,35 @@ function ensureSubscribed() {
  * @param {Function} handler the handler to register
  */
 function registerHandler(event, handler) {
-  ensureSubscribed();
+  ensureSubscribed()
 
   if (handlers[event] === undefined) {
-    handlers[event] = [];
+    handlers[event] = []
   }
 
   if (!client) {
-    client = getClient();
+    client = getClient()
   }
-  client.subscribe(event);
+  client.subscribe(event)
 
-  const funcs = handlers[event];
+  const funcs = handlers[event]
   if (funcs.indexOf(handler) === -1) {
-    funcs.push(handler);
+    funcs.push(handler)
   }
 }
 
 export default {
   publish: {
     createBot(teamId) {
-      publish(events.CREATE_BOT, teamId);
+      publish(events.CREATE_BOT, teamId)
     },
   },
   handle: {
     createBot(handler) {
       function _handler(channel, message) {
-        handler(message);
+        handler(message)
       }
-      registerHandler(events.CREATE_BOT, _handler);
+      registerHandler(events.CREATE_BOT, _handler)
     },
   },
-};
+}

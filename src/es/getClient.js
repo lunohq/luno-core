@@ -1,28 +1,28 @@
-import AWS from 'aws-sdk';
-import { Client } from 'elasticsearch';
-import connector from 'http-aws-es';
-import env from '../config';
+import AWS from 'aws-sdk'
+import { Client } from 'elasticsearch'
+import connector from 'http-aws-es'
+import env from '../config'
 
 const indices = {
   write: 'luno-bot-write',
   read: 'luno-bot-read',
-};
+}
 
 export const config = {
   indices,
   write: {
     index: indices.write,
   },
-};
+}
 
 function credentials() {
   return new Promise((resolve, reject) => {
-    const provider = new AWS.CredentialProviderChain();
+    const provider = new AWS.CredentialProviderChain()
     provider.resolve((err, creds) => {
-      if (err) return reject(err);
-      resolve(creds);
-    });
-  });
+      if (err) return reject(err)
+      resolve(creds)
+    })
+  })
 }
 
 export default function() {
@@ -36,5 +36,5 @@ export default function() {
       credentials: credentials(),
     },
     requestTimeout: 500,
-  });
+  })
 }

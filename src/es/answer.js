@@ -1,8 +1,8 @@
-import getClient, { config } from './getClient';
+import getClient, { config } from './getClient'
 
-const type = 'answer';
+const type = 'answer'
 
-const client = getClient();
+const client = getClient()
 
 export function indexAnswer({ id, ...body }) {
   return new Promise((resolve, reject) => {
@@ -13,10 +13,10 @@ export function indexAnswer({ id, ...body }) {
       body,
       routing: body.botId,
     }, (err, res) => {
-      if (err) return reject(err);
-      return resolve(res);
-    });
-  });
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
 }
 
 export function deleteAnswer(botId, id) {
@@ -27,10 +27,10 @@ export function deleteAnswer(botId, id) {
       id,
       routing: botId,
     }, (err, res) => {
-      if (err && err.status !== 404) return reject(err);
-      return resolve(res);
-    });
-  });
+      if (err && err.status !== 404) return reject(err)
+      return resolve(res)
+    })
+  })
 }
 
 export function search(botId, query) {
@@ -50,7 +50,7 @@ export function search(botId, query) {
         },
       },
     },
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.search({
@@ -59,8 +59,8 @@ export function search(botId, query) {
       body,
       explain: true,
     }, (err, res) => {
-      if (err) return reject(err);
-      return resolve(res);
-    });
-  });
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
 }

@@ -1,60 +1,60 @@
-import uuid from 'node-uuid';
+import uuid from 'node-uuid'
 
-import client, { compositeId, fromDB, resolveTableName } from './client';
-import * as es from '../es/answer';
+import client, { compositeId, fromDB, resolveTableName } from './client'
+import * as es from '../es/answer'
 
-const table = resolveTableName('answer-v1');
+const table = resolveTableName('answer-v1')
 
-export class Answer {};
+export class Answer {}
 
 export function createAnswer({ botId, ...data }) {
-  const answer = new Answer();
-  Object.assign(answer, data);
-  answer.id = uuid.v4();
-  answer.botId = botId;
+  const answer = new Answer()
+  Object.assign(answer, data)
+  answer.id = uuid.v4()
+  answer.botId = botId
 
-  const now = new Date().toISOString();
-  answer.created = now;
-  answer.changed = now;
+  const now = new Date().toISOString()
+  answer.created = now
+  answer.changed = now
 
   const params = {
     TableName: table,
     Item: answer,
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.put(params, async (err, data) => {
-      if (err) return reject(err);
+      if (err) return reject(err)
 
       try {
-        await es.indexAnswer(answer);
+        await es.indexAnswer(answer)
       } catch (err) {
-        return reject(err);
+        return reject(err)
       }
 
-      return resolve(answer);
-    });
-  });
+      return resolve(answer)
+    })
+  })
 }
 
 export function getAnswer(botId, id) {
   const params = {
     TableName: table,
     Key: { id, botId },
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.get(params, (err, data) => {
-      if (err) return reject(err);
+      if (err) return reject(err)
 
-      let answer;
+      let answer
       if (data.Item) {
-        answer = fromDB(Answer, data.Item);
+        answer = fromDB(Answer, data.Item)
       }
 
-      return resolve(answer);
-    });
-  });
+      return resolve(answer)
+    })
+  })
 }
 
 export function getAnswers(botId) {
@@ -66,14 +66,14 @@ export function getAnswers(botId) {
     },
     IndexName: 'AnswerBotIdCreated',
     ScanIndexForward: false,
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.queryAll(params, (err, items) => {
-      if (err) return reject(err);
-      return resolve(items.map((item) => fromDB(Answer, item)));
-    });
-  });
+      if (err) return reject(err)
+      return resolve(items.map((item) => fromDB(Answer, item)))
+    })
+  })
 }
 
 export function deleteAnswer(botId, id) {
@@ -81,21 +81,21 @@ export function deleteAnswer(botId, id) {
     TableName: table,
     Key: { id, botId },
     ReturnValues: 'ALL_OLD',
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.delete(params, async (err, data) => {
-      if (err) return reject(err);
+      if (err) return reject(err)
 
       try {
-        await es.deleteAnswer(botId, id);
+        await es.deleteAnswer(botId, id)
       } catch (err) {
-        return reject(err);
+        return reject(err)
       }
 
-      return resolve(fromDB(Answer, data.Attributes));
-    });
-  });
+      return resolve(fromDB(Answer, data.Attributes))
+    })
+  })
 }
 
 export function updateAnswer({ botId, id, title, body }) {
@@ -119,20 +119,20 @@ export function updateAnswer({ botId, id, title, body }) {
       ':changed': new Date().toISOString(),
     },
     ReturnValues: 'ALL_NEW',
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.update(params, async (err, data) => {
-      if (err) return reject(err);
-      const answer = fromDB(Answer, data.Attributes);
+      if (err) return reject(err)
+      const answer = fromDB(Answer, data.Attributes)
 
       try {
-        await es.indexAnswer(answer);
+        await es.indexAnswer(answer)
       } catch (err) {
-        return reject(err);
+        return reject(err)
       }
 
-      return resolve(answer);
-    });
-  });
+      return resolve(answer)
+    })
+  })
 }

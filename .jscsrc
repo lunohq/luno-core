@@ -4,5 +4,7 @@
   "esnext": true,
   "disallowSpacesInsideObjectBrackets": null,
   "requirePaddingNewLinesBeforeLineComments": null,
-  "requirePaddingNewLinesAfterBlocks": null
+  "requirePaddingNewLinesAfterBlocks": null,
+  "disallowSemicolons": true,
+  "requireSemicolons": null
 }

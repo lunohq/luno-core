@@ -1,83 +1,83 @@
-import { getTeam, updateTeam, getTeams } from '../db/team';
-import { getUser, updateUser } from '../db/user';
-import { createBot } from '../db/bot';
+import { getTeam, updateTeam, getTeams } from '../db/team'
+import { getUser, updateUser } from '../db/user'
+import { createBot } from '../db/bot'
 
 export default {
   teams: {
     get: async (id, cb) => {
-      let team;
+      let team
       try {
-        team = await getTeam(id);
+        team = await getTeam(id)
       } catch (err) {
-        return cb(err);
+        return cb(err)
       }
 
-      return cb(null, team);
+      return cb(null, team)
     },
 
     save: async ({ team: data, isnew }, cb) => {
-      let team;
+      let team
       try {
-        team = await updateTeam(data);
+        team = await updateTeam(data)
       } catch (err) {
-        return cb(err);
+        return cb(err)
       }
 
       if (isnew) {
         try {
-          await createBot({ teamId: team.id });
+          await createBot({ teamId: team.id })
         } catch (err) {
-          return cb(err);
+          return cb(err)
         }
       }
 
-      return cb(null, team);
+      return cb(null, team)
     },
 
     all: async (cb) => {
-      let teams;
+      let teams
       try {
-        teams = await getTeams();
+        teams = await getTeams()
       } catch (err) {
-        return cb(err);
+        return cb(err)
       }
 
-      return cb(null, teams);
+      return cb(null, teams)
     },
 
   },
   users: {
     get: async (id, cb) => {
-      let user;
+      let user
       try {
-        user = await getUser(id);
+        user = await getUser(id)
       } catch (err) {
-        return cb(err);
+        return cb(err)
       }
 
-      return cb(null, user);
+      return cb(null, user)
     },
 
     save: async ({ user: data, isnew }, cb) => {
       // transform values from slack to camelcase
       if (data.access_token) {
-        data.accessToken = data.access_token;
-        delete data.access_token;
+        data.accessToken = data.access_token
+        delete data.access_token
       }
 
       if (data.team_id) {
-        data.teamId = data.team_id;
-        delete data.team_id;
+        data.teamId = data.team_id
+        delete data.team_id
       }
 
-      let user;
+      let user
       try {
-        user = await updateUser(data);
+        user = await updateUser(data)
       } catch (err) {
-        return cb(err);
+        return cb(err)
       }
 
-      return cb(null, user);
+      return cb(null, user)
     },
 
     // We should never want to return all the users in the system
@@ -88,4 +88,4 @@ export default {
     save: (_, cb) => cb(new Error('Not implemented')),
     all: (cb) => cb(new Error('Not implemented')),
   },
-};
+}

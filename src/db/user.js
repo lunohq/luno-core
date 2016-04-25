@@ -1,39 +1,39 @@
-import uuid from 'node-uuid';
+import uuid from 'node-uuid'
 
-import client, { fromDB, resolveTableName } from './client';
+import client, { fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('user-v1');
+const table = resolveTableName('user-v1')
 
 export class User {
-  anonymous = false;
-};
+  anonymous = false
+}
 
 export class AnonymousUser extends User {
-  anonymous = true;
-};
+  anonymous = true
+}
 
 export function getUser(id) {
   return new Promise((resolve, reject) => {
     const params = {
       TableName: table,
       Key: { id },
-    };
+    }
 
     client.get(params, (err, data) => {
-      if (err) return reject(err);
+      if (err) return reject(err)
 
-      let user;
+      let user
       if (data.Item) {
-        user = fromDB(User, data.Item);
+        user = fromDB(User, data.Item)
       }
 
-      return resolve(user);
-    });
-  });
+      return resolve(user)
+    })
+  })
 }
 
 export function updateUser(user) {
-  const now = new Date().toISOString();
+  const now = new Date().toISOString()
   const params = {
     TableName: table,
     Key: { id: user.id },
@@ -63,15 +63,15 @@ export function updateUser(user) {
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.update(params, (err, data) => {
-      if (err) return reject(err);
-      user = fromDB(User, data.Attributes);
-      return resolve(user);
-    });
-  });
+      if (err) return reject(err)
+      user = fromDB(User, data.Attributes)
+      return resolve(user)
+    })
+  })
 }
 
 export function getUsers(teamId) {
@@ -81,12 +81,12 @@ export function getUsers(teamId) {
     ExpressionAttributeValues: {
       ':teamId': teamId,
     },
-  };
+  }
 
   return new Promise((resolve, reject) => {
     client.scan(params, (err, data) => {
-      if (err) return reject(err);
-      return resolve(data.Items.map((item) => fromDB(User, item)));
-    });
-  });
+      if (err) return reject(err)
+      return resolve(data.Items.map((item) => fromDB(User, item)))
+    })
+  })
 }
