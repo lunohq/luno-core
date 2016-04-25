@@ -1,6 +1,23 @@
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
+import getClient from '../redis/getClient'
+import config from '../config'
+
+let client
+
+function retrieveClient() {
+  if (!client) {
+    client = getClient()
+  }
+  return client
+}
+
+function reactionKey(...args) {
+  const parts = ['react']
+  parts.push(...args)
+  return parts.join(':')
+}
 
 export default {
   teams: {
@@ -87,5 +104,28 @@ export default {
     get: (_, cb) => cb(new Error('Not implemented')),
     save: (_, cb) => cb(new Error('Not implemented')),
     all: (cb) => cb(new Error('Not implemented')),
+  },
+  reactions: {
+    listenTo: ({ ts, channel }) => {
+      const redis = retrieveClient()
+      const key = reactionKey(channel, ts)
+      return redis.setexAsync(key, config.redis.timeouts.reactions, true)
+    },
+    shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
+      const redis = retrieveClient()
+      const key = reactionKey(channel, ts)
+      let result
+      try {
+        result = await redis.getAsync(key)
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(!!result)
+    }),
+    clear: ({ ts, channel }) => {
+      const redis = retrieveClient()
+      const key = reactionKey(channel, ts)
+      return redis.delAsync(key)
+    },
   },
 }
