@@ -4,12 +4,13 @@ const table = resolveTableName('team-v1')
 
 export class Team {}
 
-export function getTeam(id) {
-  const params = {
+export function getTeam(id, options={}) {
+  let params = {
     TableName: table,
     Key: { id },
   }
 
+  params = Object.assign({}, options, params)
   return new Promise((resolve, reject) => {
     client.get(params, (err, data) => {
       if (err) return reject(err)

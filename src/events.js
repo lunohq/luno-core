@@ -1,7 +1,7 @@
 import getClient from './redis/getClient'
 
 const events = {
-  CREATE_BOT: 'CREATE_BOT',
+  CREATE_TEAM: 'CREATE_BOT',
 }
 
 const handlers = {}
@@ -69,16 +69,16 @@ function registerHandler(event, handler) {
 
 export default {
   publish: {
-    createBot(teamId) {
-      publish(events.CREATE_BOT, teamId)
+    createTeam(teamId) {
+      publish(events.CREATE_TEAM, teamId)
     },
   },
   handle: {
-    createBot(handler) {
+    createTeam(handler) {
       function _handler(channel, message) {
         handler(message)
       }
-      registerHandler(events.CREATE_BOT, _handler)
+      registerHandler(events.CREATE_TEAM, _handler)
     },
   },
 }
