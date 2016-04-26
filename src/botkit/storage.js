@@ -11,7 +11,7 @@ let redlock
 function retrieveClient() {
   if (!client) {
     client = getClient()
-    redlock = new Redlock([client])
+    redlock = new Redlock([client], { retryCount: 0 })
   }
   return { client, redlock }
 }
