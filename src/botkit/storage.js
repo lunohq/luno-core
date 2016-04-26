@@ -1,3 +1,4 @@
+import Redlock from 'redlock'
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
@@ -5,12 +6,14 @@ import getClient from '../redis/getClient'
 import config from '../config'
 
 let client
+let redlock
 
 function retrieveClient() {
   if (!client) {
     client = getClient()
+    redlock = new Redlock([client])
   }
-  return client
+  return { client, redlock }
 }
 
 function reactionKey(...args) {
@@ -107,12 +110,12 @@ export default {
   },
   reactions: {
     listenTo: ({ ts, channel }) => {
-      const redis = retrieveClient()
+      const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
       return redis.setexAsync(key, config.redis.timeouts.reactions, true)
     },
     shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
-      const redis = retrieveClient()
+      const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
       let result
       try {
@@ -123,9 +126,16 @@ export default {
       return resolve(!!result)
     }),
     clear: ({ ts, channel }) => {
-      const redis = retrieveClient()
+      const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
       return redis.delAsync(key)
+    },
+  },
+  mutex: {
+    lock: ({ botId, channel, ts }, interval) => {
+      const key = `bmutex:${botId}:${channel}:${ts}`
+      const { redlock } = retrieveClient()
+      return redlock.lock(key, interval)
     },
   },
 }
