@@ -112,14 +112,14 @@ export default {
     listenTo: ({ ts, channel }) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
-      return redis.setexAsync(key, config.redis.timeouts.reactions, true)
+      return client.setexAsync(key, config.redis.timeouts.reactions, true)
     },
     shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
       let result
       try {
-        result = await redis.getAsync(key)
+        result = await client.getAsync(key)
       } catch (err) {
         return reject(err)
       }
@@ -128,7 +128,7 @@ export default {
     clear: ({ ts, channel }) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
-      return redis.delAsync(key)
+      return client.delAsync(key)
     },
   },
   mutex: {
