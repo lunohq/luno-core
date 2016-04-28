@@ -1,7 +1,7 @@
 import getClient from './redis/getClient'
 
 const events = {
-  CREATE_TEAM: 'CREATE_BOT',
+  CREATE_TEAM: 'CREATE_TEAM',
 }
 
 const handlers = {}
