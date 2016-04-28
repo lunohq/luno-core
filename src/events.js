@@ -1,4 +1,6 @@
+import AWS from 'aws-sdk'
 import getClient from './redis/getClient'
+import config from './config'
 
 const events = {
   CREATE_TEAM: 'CREATE_TEAM',
@@ -8,18 +10,26 @@ const handlers = {}
 
 let client
 let subscribed = false
+const sns = new AWS.SNS()
 
 /**
  * Publish an event, instantiating the redis client if necessary
  *
  * @param {String} event an event to publish
  * @param {String} message message to publish
+ * @param {Object} notification instructions on how to publish to sns
  */
-function publish(event, message) {
-  if (!client) {
-    client = getClient()
-  }
-  client.publish(event, message)
+function publish(event, message, notification) {
+  return new Promise(async (resolve, reject) => {
+    if (!client) {
+      client = getClient()
+    }
+    client.publish(event, message)
+    if (notification) {
+      return sns.publish(notification)
+    }
+    return resolve()
+  })
 }
 
 /**
@@ -70,7 +80,12 @@ function registerHandler(event, handler) {
 export default {
   publish: {
     createTeam(teamId) {
-      publish(events.CREATE_TEAM, teamId)
+      const notification = {
+        Subject: 'New Team',
+        Message: JSON.stringify({ teamId }),
+        TopicArn: config.sns.topic.newUser,
+      }
+      return publish(events.CREATE_TEAM, teamId, notification)
     },
   },
   handle: {
