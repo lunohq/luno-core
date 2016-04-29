@@ -24,9 +24,15 @@ function publish(event, message, notification) {
     if (!client) {
       client = getClient()
     }
-    client.publish(event, message)
+
+    let result
+    try {
+      result = await client.publishAsync(event, message)
+    } catch (err) {
+      return reject(err)
+    }
     if (notification) {
-      return sns.publish(notification)
+      return resolve(sns.publish(notification).promise())
     }
     return resolve()
   })
