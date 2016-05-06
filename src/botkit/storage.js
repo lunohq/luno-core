@@ -45,7 +45,7 @@ export default {
 
       if (isnew) {
         try {
-          await createBot({ teamId: team.id })
+          await createBot({ teamId: team.id, purpose: team.name })
         } catch (err) {
           return cb(err)
         }
