@@ -4,6 +4,7 @@ import config from './config'
 
 const events = {
   CREATE_TEAM: 'CREATE_TEAM',
+  CREATE_USER: 'CREATE_USER',
 }
 
 const handlers = {}
@@ -31,7 +32,9 @@ function publish(event, message, notification) {
     } catch (err) {
       return reject(err)
     }
+    console.log('sns notification', notification)
     if (notification) {
+      console.log('publishing to sns')
       return sns.publish(notification).promise()
     }
     return resolve()
@@ -93,6 +96,15 @@ export default {
       }
       return publish(events.CREATE_TEAM, teamId, notification)
     },
+    createUser(teamId, userId) {
+      const payload = JSON.stringify({ teamId, userId })
+      const notification = {
+        Subject: 'New User',
+        Message: payload,
+        TopicArn: config.sns.topic.newUser,
+      }
+      return publish(events.CREATE_USER, payload, notification)
+    },
   },
   handle: {
     createTeam(handler) {
@@ -100,6 +112,12 @@ export default {
         handler(message)
       }
       registerHandler(events.CREATE_TEAM, _handler)
+    },
+    createUser(handler) {
+      function _handler(channel, message) {
+        handler(message)
+      }
+      registerHandler(events.CREATE_USER, _handler)
     },
   },
 }
