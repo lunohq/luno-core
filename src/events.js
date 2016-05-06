@@ -32,7 +32,7 @@ function publish(event, message, notification) {
       return reject(err)
     }
     if (notification) {
-      return resolve(sns.publish(notification).promise())
+      return sns.publish(notification).promise()
     }
     return resolve()
   })
