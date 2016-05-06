@@ -89,7 +89,7 @@ export default {
       const notification = {
         Subject: 'New Team',
         Message: JSON.stringify({ teamId }),
-        TopicArn: config.sns.topic.newUser,
+        TopicArn: config.sns.topic.newTeam,
       }
       return publish(events.CREATE_TEAM, teamId, notification)
     },

@@ -11,6 +11,7 @@ const {
     REDIS_HOST,
     REDIS_TIMEOUTS_REACTIONS,
     SNS_TOPIC_NEW_USER,
+    SNS_TOPIC_NEW_TEAM,
   },
 } = process
 
@@ -31,6 +32,7 @@ merge(config, {
   sns: {
     topic: {
       newUser: SNS_TOPIC_NEW_USER,
+      newTeam: SNS_TOPIC_NEW_TEAM,
     },
   },
 })
