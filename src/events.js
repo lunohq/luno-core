@@ -32,9 +32,7 @@ function publish(event, message, notification) {
     } catch (err) {
       return reject(err)
     }
-    console.log('sns notification', notification)
     if (notification) {
-      console.log('publishing to sns')
       return resolve(sns.publish(notification).promise())
     }
     return resolve()
