@@ -35,7 +35,7 @@ function publish(event, message, notification) {
     console.log('sns notification', notification)
     if (notification) {
       console.log('publishing to sns')
-      return sns.publish(notification).promise()
+      return resolve(sns.publish(notification).promise())
     }
     return resolve()
   })
