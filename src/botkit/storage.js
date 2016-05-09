@@ -109,10 +109,10 @@ export default {
     all: (cb) => cb(new Error('Not implemented')),
   },
   reactions: {
-    listenTo: ({ ts, channel }) => {
+    listenTo: ({ ts, channel }, payload) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
-      return client.setexAsync(key, config.redis.timeouts.reactions, true)
+      return client.setexAsync(key, config.redis.timeouts.reactions, payload)
     },
     shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
       const { client } = retrieveClient()
@@ -123,7 +123,7 @@ export default {
       } catch (err) {
         return reject(err)
       }
-      return resolve(!!result)
+      return resolve(result)
     }),
     clear: ({ ts, channel }) => {
       const { client } = retrieveClient()
