@@ -13,6 +13,9 @@ export const config = {
   write: {
     index: indices.write,
   },
+  read: {
+    index: indices.read,
+  },
 }
 
 function credentials() {

@@ -33,8 +33,8 @@ export function deleteAnswer(botId, id) {
   })
 }
 
-export function search(botId, query) {
-  const body = {
+function getQuery(botId, query) {
+  return {
     query: {
       filtered: {
         query: {
@@ -51,13 +51,32 @@ export function search(botId, query) {
       },
     },
   }
+}
 
+export function search(botId, query) {
+  const body = getQuery(botId, query)
   return new Promise((resolve, reject) => {
     client.search({
       ...config.read,
       type,
       body,
       explain: true,
+    }, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
+}
+
+export function explain(botId, query, answerId) {
+  const body = getQuery(botId, query)
+  return new Promise((resolve, reject) => {
+    client.explain({
+      ...config.read,
+      type,
+      body,
+      id: answerId,
+      routing: botId,
     }, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
