@@ -60,7 +60,6 @@ export function search(botId, query) {
       ...config.read,
       type,
       body,
-      explain: true,
     }, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
