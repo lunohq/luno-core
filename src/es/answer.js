@@ -73,6 +73,7 @@ export function explain(botId, query, answerId) {
   return new Promise((resolve, reject) => {
     client.explain({
       ...config.read,
+      ...config.explain,
       type,
       body,
       id: answerId,

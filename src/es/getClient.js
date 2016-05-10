@@ -16,6 +16,7 @@ export const config = {
   read: {
     index: indices.read,
   },
+  explain: env.es.explain,
 }
 
 function credentials() {

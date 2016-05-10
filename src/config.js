@@ -8,6 +8,7 @@ const {
     STAGE,
     AWS_REGION,
     ES_HOST,
+    ES_EXPLAIN_TIMEOUT,
     REDIS_HOST,
     REDIS_TIMEOUTS_REACTIONS,
     SNS_TOPIC_NEW_USER,
@@ -22,6 +23,9 @@ merge(config, {
   },
   es: {
     host: ES_HOST,
+    explain: {
+      timeout: ES_EXPLAIN_TIMEOUT || 5000,
+    },
   },
   redis: {
     host: REDIS_HOST,
