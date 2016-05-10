@@ -91,10 +91,24 @@ export function validate(botId, query) {
     client.indices.validateQuery({
       ...config.read,
       ...config.explain,
-      explain: true,
       type,
       body,
+      explain: true,
       routing: botId,
+    }, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
+}
+
+export function analyze({ query, ...rest }) {
+  return new Promise((resolve, reject) => {
+    client.indices.analyze({
+      ...config.read,
+      ...rest,
+      type,
+      text: query,
     }, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
