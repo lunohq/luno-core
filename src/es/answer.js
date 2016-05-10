@@ -53,11 +53,12 @@ function getQuery(botId, query) {
   }
 }
 
-export function search(botId, query) {
+export function search(botId, query, options = {}) {
   const body = getQuery(botId, query)
   return new Promise((resolve, reject) => {
     client.search({
       ...config.read,
+      ...options,
       type,
       body,
     }, (err, res) => {
