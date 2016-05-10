@@ -83,3 +83,20 @@ export function explain(botId, query, answerId) {
     })
   })
 }
+
+export function validate(botId, query) {
+  const body = getQuery(botId, query)
+  return new Promise((resolve, reject) => {
+    client.indices.validateQuery({
+      ...config.read,
+      ...config.explain,
+      explain: true,
+      type,
+      body,
+      routing: botId,
+    }, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
+}
