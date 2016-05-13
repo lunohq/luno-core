@@ -2,6 +2,7 @@ import Redlock from 'redlock'
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
+import { getOpenThread, closeThread, createThread, createEvent } from '../db/thread'
 import getClient from '../redis/getClient'
 import config from '../config'
 
@@ -132,10 +133,95 @@ export default {
     },
   },
   mutex: {
-    lock: ({ botId, channel, ts }, interval) => {
+    lockMessage: ({ botId, channel, ts }, interval) => {
       const key = `bmutex:${botId}:${channel}:${ts}`
       const { redlock } = retrieveClient()
       return redlock.lock(key, interval)
     },
+    lockThread: ({ botId, channel, user }, interval) => {
+      const key = `bmutex:${botId}:${channel}:${user}`
+      const { redlock } = retrieveClient()
+      return redlock.lock(key, interval)
+    },
+  },
+  threads: {
+    getOrOpen: ({ botId, channel, user }) => new Promise(async (resolve, reject) => {
+      let response
+      try {
+        response = await getOpenThread({ botId, channelId: channel, userId: user })
+      } catch (err) {
+        return reject(err)
+      }
+
+      if (!response.thread) {
+        try {
+          const thread = await createThread({ botId, channelId: channel, userId: user })
+          response = { thread, events: [] }
+        } catch (err) {
+          return reject(err)
+        }
+      }
+      return resolve(response)
+    }),
+    open: ({ botId, channel, user }) => new Promise(async (resolve, reject) => {
+      let response = {}
+      try {
+        const thread = await createThread({ botId, channelId: channel, userId: user })
+        response = { thread, events: [] }
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(response)
+    }),
+    close: ({ thread: params }) => new Promise(async (resolve, reject) => {
+      let thread
+      try {
+        thread = await closeThread(params)
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(thread)
+    }),
+    receive: ({ message, thread }) => new Promise(async (resolve, reject) => {
+      message = Object.assign({}, message)
+      delete message.luno
+
+      const { ts: messageId } = message
+      const { id: threadId, botId, channelId } = thread
+      let response
+      try {
+        response = await createEvent({ threadId, botId, channelId, messageId, message })
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(response)
+    }),
+    send: ({ message, thread }) => new Promise(async (resolve, reject) => {
+      const { id: threadId, botId, channelId } = thread
+
+      let messageId
+      if (message.ts) {
+        messageId = message.ts
+      }
+
+      let response
+      try {
+        response = await createEvent({ threadId, botId, channelId, message, messageId })
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(response)
+    }),
+    log: ({ thread, event }) => new Promise(async (resolve, reject) => {
+      const { id: threadId, botId, channelId } = thread
+
+      let response
+      try {
+        response = await createEvent({ threadId, botId, channelId, ...event })
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(response)
+    }),
   },
 }

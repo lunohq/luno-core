@@ -1,6 +1,6 @@
 import uuid from 'node-uuid'
 
-import client, { compositeId, fromDB, resolveTableName } from './client'
+import client, { fromDB, resolveTableName } from './client'
 import * as es from '../es/answer'
 
 const table = resolveTableName('answer-v1')
