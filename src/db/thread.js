@@ -29,17 +29,16 @@ export class Thread {}
 export class ThreadEvent {}
 
 function validate(required) {
-  let error
   for (const key in required) {
     if (!required[key]) {
-      error = new Error(`missing required field: (${key})`)
+      throw new Error(`missing required field: (${key})`)
     }
   }
-  return error
 }
 
-export function createThread({ botId, channelId, userId, ...data }) {
-  const invalid = validate({ botId, channelId, userId })
+export async function createThread({ botId, channelId, userId, ...data }) {
+  validate({ botId, channelId, userId })
+
   const thread = new Thread()
   Object.assign(thread, data)
   thread.id = uuid.v4()
@@ -59,18 +58,13 @@ export function createThread({ botId, channelId, userId, ...data }) {
     Item: thread,
   }
 
-  return new Promise((resolve, reject) => {
-    if (invalid) return reject(invalid)
-
-    client.put(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(thread)
-    })
-  })
+  await client.put(params).promise()
+  return thread
 }
 
-export function createEvent({ threadId, botId, channelId, messageId, userId, ...data }) {
-  const invalid = validate({ threadId, botId, channelId, userId })
+export async function createEvent({ threadId, botId, channelId, messageId, userId, ...data }) {
+  validate({ threadId, botId, channelId, userId })
+
   const event = new ThreadEvent()
   Object.assign(event, data)
   event.threadId = threadId
@@ -91,17 +85,11 @@ export function createEvent({ threadId, botId, channelId, messageId, userId, ...
     Item: event,
   }
 
-  return new Promise((resolve, reject) => {
-    if (invalid) return reject(invalid)
-
-    client.put(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(event)
-    })
-  })
+  await client.put(params).promise()
+  return event
 }
 
-export function getThreadEvents(threadId) {
+export async function getThreadEvents(threadId) {
   const params = {
     TableName: threadEventTable,
     KeyConditionExpression: 'threadId = :threadId',
@@ -109,42 +97,29 @@ export function getThreadEvents(threadId) {
       ':threadId': threadId,
     },
   }
-
-  return new Promise((resolve, reject) => {
-    client.queryAll(params, (err, items) => {
-      if (err) return reject(err)
-      return resolve(items.map(item => fromDB(ThreadEvent, item)))
-    })
-  })
+  const data = await client.queryAll(params)
+  return items.map(item => fromDB(ThreadEvent, item))
 }
 
-export function getThread({ botId, channelId, userId, id }) {
+export async function getThread({ botId, channelId, userId, id }) {
   const params = {
     TableName: threadTable,
     Key: { id, botIdChannelIdUserId: compositeId(botId, channelId, userId) },
   }
-  return new Promise((resolve, reject) => {
-    client.get(params, async (err, data) => {
-      if (err) return reject(err)
-      const response = {}
+  const data = await client.get(params)
+  const response = {}
 
-      if (data.Item) {
-        response.thread = fromDB(Thread, data.Item)
-      }
+  if (data.Item) {
+    response.thread = fromDB(Thread, data.Item)
+  }
 
-      if (response.thread) {
-        try {
-          response.events = await getThreadEvents(response.thread.id)
-        } catch (err) {
-          return reject(err)
-        }
-      }
-      return resolve(response)
-    })
-  })
+  if (response.thread) {
+    response.events = await getThreadEvents(response.thread.id)
+  }
+  return response
 }
 
-export function lookupThread({ botId, channelId, messageId }) {
+export async function lookupThread({ botId, channelId, messageId }) {
   const params = {
     TableName: threadEventTable,
     KeyConditionExpression: 'botIdChannelIdMessageId = :botIdChannelIdMessageId',
@@ -154,24 +129,16 @@ export function lookupThread({ botId, channelId, messageId }) {
     IndexName: 'ThreadEventBotIdChannelIdMessageId',
   }
 
-  return new Promise((resolve, reject) => {
-    client.queryAll(params, async (err, items) => {
-      if (err) return reject(err)
-      const item = items[0]
-      let thread
-      if (item) {
-        try {
-          thread = await getThread({ botId, channelId, userId: item.userId, id: item.threadId })
-        } catch (err) {
-          return reject(err)
-        }
-      }
-      return resolve(thread)
-    })
-  })
+  const items = await client.queryAll(params)
+  const item = items[0]
+  let thread
+  if (item) {
+    thread = await getThread({ botId, channelId, userId: item.userId, id: item.threadId })
+  }
+  return thread
 }
 
-export function getOpenThread({ botId, channelId, userId }) {
+export async function getOpenThread({ botId, channelId, userId }) {
   const params = {
     TableName: threadTable,
     KeyConditionExpression: 'botIdChannelIdUserId = :botIdChannelIdUserId AND #status = :status',
@@ -185,29 +152,20 @@ export function getOpenThread({ botId, channelId, userId }) {
     IndexName: 'ThreadBotIdChannelIdUserIdStatus',
   }
 
-  return new Promise((resolve, reject) => {
-    client.queryAll(params, async (err, items) => {
-      if (err) return reject(err)
-      const response = {}
+  const items = await client.queryAll(params)
+  const response = {}
+  if (items.length) {
+    response.thread = fromDB(Thread, items[0])
+  }
 
-      if (items.length) {
-        response.thread = fromDB(Thread, items[0])
-      }
-
-      if (response.thread) {
-        try {
-          response.events = await getThreadEvents(response.thread.id)
-        } catch (err) {
-          return reject(err)
-        }
-      }
-      return resolve(response)
-    })
-  })
+  if (response.thread) {
+    response.events = await getThreadEvents(response.thread.id)
+  }
+  return response
 }
 
-export function closeThread({ botId, channelId, userId, id }) {
-  const invalid = validate({ botId, channelId, userId, id })
+export async function closeThread({ botId, channelId, userId, id }) {
+  validate({ botId, channelId, userId, id })
   const params = {
     TableName: threadTable,
     Key: {
@@ -230,12 +188,6 @@ export function closeThread({ botId, channelId, userId, id }) {
     ReturnValues: 'ALL_NEW',
   }
 
-  return new Promise((resolve, reject) => {
-    if (invalid) return reject(invalid)
-    client.update(params, (err, data) => {
-      if (err) return reject(err)
-      const thread = fromDB(Thread, data.Attributes)
-      return resolve(thread)
-    })
-  })
+  const data = await client.update(params)
+  return fromDB(Thread, data.Attributes)
 }

@@ -10,18 +10,16 @@ class Client extends AWS.DynamoDB.DocumentClient {
    * @param {Function} cb callback
    * @param {Array} items array of items that will be returned
    */
-  queryAll(params, cb, items = []) {
-    this.query(params, (err, data) => {
-      if (err) return cb(err)
-      items.push(...data.Items)
-      const { LastEvaluatedKey } = data
-      if (LastEvaluatedKey) {
-        const nextParams = Object.assign({}, params, { LastEvaluatedKey })
-        this.queryAll(nextParams, cb, items)
-      } else {
-        cb(null, items)
-      }
-    })
+  async queryAll(params, items = []) {
+    const data = await this.query(params).promise()
+    items.push(...data.Items)
+    const { LastEvaluatedKey } = data
+    if (LastEvaluatedKey) {
+      const nextParams = Object.assign({}, params, { LastEvaluatedKey })
+      await this.queryAll(nextParams, items)
+    } else {
+      return items
+    }
   }
 
 }
