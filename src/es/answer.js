@@ -5,32 +5,28 @@ const type = 'answer'
 const client = getClient()
 
 export function indexAnswer({ id, ...body }) {
-  return new Promise((resolve, reject) => {
-    client.index({
-      ...config.write,
-      type,
-      id,
-      body,
-      routing: body.botId,
-    }, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
+  return client.index({
+    ...config.write,
+    type,
+    id,
+    body,
+    routing: body.botId,
   })
 }
 
-export function deleteAnswer(botId, id) {
-  return new Promise((resolve, reject) => {
-    client.delete({
+export async function deleteAnswer(botId, id) {
+  let res
+  try {
+    res = await client.delete({
       ...config.write,
       type,
       id,
       routing: botId,
-    }, (err, res) => {
-      if (err && err.status !== 404) return reject(err)
-      return resolve(res)
     })
-  })
+  } catch (err) {
+    if (err.status !== 404) throw err
+  }
+  return res
 }
 
 function getQuery(botId, query) {
@@ -55,63 +51,43 @@ function getQuery(botId, query) {
 
 export function search(botId, query, options = {}) {
   const body = getQuery(botId, query)
-  return new Promise((resolve, reject) => {
-    client.search({
-      ...config.read,
-      ...options,
-      type,
-      body,
-    }, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
+  return client.search({
+    ...config.read,
+    ...options,
+    type,
+    body,
   })
 }
 
 export function explain(botId, query, answerId) {
   const body = getQuery(botId, query)
-  return new Promise((resolve, reject) => {
-    client.explain({
-      ...config.read,
-      ...config.explain,
-      type,
-      body,
-      id: answerId,
-      routing: botId,
-    }, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
+  return client.explain({
+    ...config.read,
+    ...config.explain,
+    type,
+    body,
+    id: answerId,
+    routing: botId,
   })
 }
 
 export function validate(botId, query) {
   const body = getQuery(botId, query)
-  return new Promise((resolve, reject) => {
-    client.indices.validateQuery({
-      ...config.read,
-      ...config.explain,
-      type,
-      body,
-      explain: true,
-      routing: botId,
-    }, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
+  return client.indices.validateQuery({
+    ...config.read,
+    ...config.explain,
+    type,
+    body,
+    explain: true,
+    routing: botId,
   })
 }
 
 export function analyze({ query, ...rest }) {
-  return new Promise((resolve, reject) => {
-    client.indices.analyze({
-      ...config.read,
-      ...rest,
-      type,
-      text: query,
-    }, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
+  return client.indices.analyze({
+    ...config.read,
+    ...rest,
+    type,
+    text: query,
   })
 }
