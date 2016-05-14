@@ -6,7 +6,7 @@ const table = resolveTableName('bot-v1')
 
 export class Bot {}
 
-export function createBot(data) {
+export async function createBot(data) {
   const bot = new Bot()
   const now = new Date().toISOString()
 
@@ -19,70 +19,48 @@ export function createBot(data) {
     TableName: table,
     Item: bot,
   }
-  return new Promise((resolve, reject) => {
-    client.put(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(bot)
-    })
-  })
+  await client.put(params).promise()
+  return bot
 }
 
-export function getBot(teamId, id) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      Key: { teamId, id },
-    }
+export async function getBot(teamId, id) {
+  const params = {
+    TableName: table,
+    Key: { teamId, id },
+  }
 
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
-      const bot = fromDB(Bot, data.Item)
-      return resolve(bot)
-    })
-  })
+  const data = await client.get(params).promise()
+  return fromDB(Bot, data.Item)
 }
 
-export function getBots(teamId) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      KeyConditionExpression: 'teamId = :teamId',
-      ExpressionAttributeValues: {
-        ':teamId': teamId,
-      },
-    }
+export async function getBots(teamId) {
+  const params = {
+    TableName: table,
+    KeyConditionExpression: 'teamId = :teamId',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
 
-    client.query(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(data.Items.map((item) => fromDB(Bot, item)))
-    })
-  })
+  const items = await client.query(params).promise()
+  return data.Items.map((item) => fromDB(Bot, item))
 }
 
-export function allBots() {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-    }
+export async function allBots() {
+  const params = {
+    TableName: table,
+  }
 
-    client.scan(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(data.Items.map((item) => fromDB(Bot, item)))
-    })
-  })
+  const items = await client.scan(params).promise()
+  return data.Items.map((item) => fromDB(Bot, item))
 }
 
-function update(params) {
-  return new Promise((resolve, reject) => {
-    client.update(params, (err, data) => {
-      if (err) return reject(err)
-      const bot = fromDB(Bot, data.Attributes)
-      return resolve(bot)
-    })
-  })
+async function update(params) {
+  const data = await client.update(params).promise()
+  return fromDB(Bot, data.Attributes)
 }
 
-export function updatePointsOfContact({ id, teamId, pointsOfContact }) {
+export async function updatePointsOfContact({ id, teamId, pointsOfContact }) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
@@ -102,10 +80,10 @@ export function updatePointsOfContact({ id, teamId, pointsOfContact }) {
     },
     ReturnValues: 'ALL_NEW',
   }
-  return update(params)
+  return await update(params)
 }
 
-export function updatePurpose({ id, teamId, purpose }) {
+export async function updatePurpose({ id, teamId, purpose }) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
@@ -125,5 +103,5 @@ export function updatePurpose({ id, teamId, purpose }) {
     },
     ReturnValues: 'ALL_NEW',
   }
-  return update(params)
+  return await update(params)
 }
