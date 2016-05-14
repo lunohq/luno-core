@@ -6,27 +6,20 @@ const table = resolveTableName('token-v1')
 
 export class Token {}
 
-export function getToken(userId, id) {
+export async function getToken(userId, id) {
   const params = {
     TableName: table,
     Key: { id, userId: userId },
   }
-
-  return new Promise((resolve, reject) => {
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
-
-      let token
-      if (data.Item) {
-        token = fromDB(Token, data.Item)
-      }
-
-      return resolve(token)
-    })
-  })
+  const data = await client.get(params).promise()
+  let token
+  if (data.Item) {
+    token = fromDB(Token, data.Item)
+  }
+  return token
 }
 
-export function createToken({ userId, ...data }) {
+export async function createToken({ userId, ...data }) {
   const token = new Token()
   const now = new Date().toISOString()
   Object.assign(token, data)
@@ -41,24 +34,14 @@ export function createToken({ userId, ...data }) {
     Item: token,
   }
 
-  return new Promise((resolve, reject) => {
-    client.put(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(token)
-    })
-  })
+  await client.put(params).promise()
+  return token
 }
 
-export function deleteToken(id, userId) {
+export async function deleteToken(id, userId) {
   const params = {
     TableName: table,
     Key: { id, userId },
   }
-
-  return new Promise((resolve, reject) => {
-    client.delete(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve()
-    })
-  })
+  await client.delete(params).promise()
 }
