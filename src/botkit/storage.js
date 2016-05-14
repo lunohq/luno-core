@@ -2,7 +2,13 @@ import Redlock from 'redlock'
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
-import { getOpenThread, closeThread, createThread, createEvent } from '../db/thread'
+import {
+  getOpenThread,
+  closeThread,
+  createThread,
+  createEvent,
+  lookupThread,
+} from '../db/thread'
 import getClient from '../redis/getClient'
 import config from '../config'
 
@@ -110,10 +116,10 @@ export default {
     all: (cb) => cb(new Error('Not implemented')),
   },
   reactions: {
-    listenTo: ({ ts, channel }, payload) => {
+    listenTo: ({ ts, channel }) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
-      return client.setexAsync(key, config.redis.timeouts.reactions, payload)
+      return client.setexAsync(key, config.redis.timeouts.reactions, true)
     },
     shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
       const { client } = retrieveClient()
@@ -163,6 +169,15 @@ export default {
       }
       return resolve(response)
     }),
+    lookup: ({ botId, channel, ts }) => new Promise(async (resolve, reject) => {
+      let response = {}
+      try {
+        response = await lookupThread({ botId, channelId: channel, messageId: ts })
+      } catch (err) {
+        return reject(err)
+      }
+      return resolve(response)
+    }),
     open: ({ botId, channel, user }) => new Promise(async (resolve, reject) => {
       let response = {}
       try {
@@ -187,17 +202,17 @@ export default {
       delete message.luno
 
       const { ts: messageId } = message
-      const { id: threadId, botId, channelId } = thread
+      const { id: threadId, botId, channelId, userId } = thread
       let response
       try {
-        response = await createEvent({ threadId, botId, channelId, messageId, message })
+        response = await createEvent({ threadId, botId, channelId, messageId, message, userId })
       } catch (err) {
         return reject(err)
       }
       return resolve(response)
     }),
     send: ({ message, thread }) => new Promise(async (resolve, reject) => {
-      const { id: threadId, botId, channelId } = thread
+      const { id: threadId, botId, channelId, userId } = thread
 
       let messageId
       if (message.ts) {
@@ -206,18 +221,18 @@ export default {
 
       let response
       try {
-        response = await createEvent({ threadId, botId, channelId, message, messageId })
+        response = await createEvent({ threadId, botId, channelId, message, messageId, userId })
       } catch (err) {
         return reject(err)
       }
       return resolve(response)
     }),
     log: ({ thread, event }) => new Promise(async (resolve, reject) => {
-      const { id: threadId, botId, channelId } = thread
+      const { id: threadId, botId, channelId, userId } = thread
 
       let response
       try {
-        response = await createEvent({ threadId, botId, channelId, ...event })
+        response = await createEvent({ threadId, botId, channelId, userId, ...event })
       } catch (err) {
         return reject(err)
       }
