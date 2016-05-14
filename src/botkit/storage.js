@@ -121,17 +121,11 @@ export default {
       const key = reactionKey(channel, ts)
       return client.setexAsync(key, config.redis.timeouts.reactions, true)
     },
-    shouldRespond: ({ ts, channel }) => new Promise(async (resolve, reject) => {
+    shouldRespond: ({ ts, channel }) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
-      let result
-      try {
-        result = await client.getAsync(key)
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(result)
-    }),
+      return client.getAsync(key)
+    },
     clear: ({ ts, channel }) => {
       const { client } = retrieveClient()
       const key = reactionKey(channel, ts)
@@ -151,67 +145,29 @@ export default {
     },
   },
   threads: {
-    getOrOpen: ({ botId, channel, user }) => new Promise(async (resolve, reject) => {
-      let response
-      try {
-        response = await getOpenThread({ botId, channelId: channel, userId: user })
-      } catch (err) {
-        return reject(err)
-      }
-
+    getOrOpen: async ({ botId, channel, user }) => {
+      let response = await getOpenThread({ botId, channelId: channel, userId: user })
       if (!response.thread) {
-        try {
-          const thread = await createThread({ botId, channelId: channel, userId: user })
-          response = { thread, events: [] }
-        } catch (err) {
-          return reject(err)
-        }
-      }
-      return resolve(response)
-    }),
-    lookup: ({ botId, channel, ts }) => new Promise(async (resolve, reject) => {
-      let response = {}
-      try {
-        response = await lookupThread({ botId, channelId: channel, messageId: ts })
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(response)
-    }),
-    open: ({ botId, channel, user }) => new Promise(async (resolve, reject) => {
-      let response = {}
-      try {
         const thread = await createThread({ botId, channelId: channel, userId: user })
         response = { thread, events: [] }
-      } catch (err) {
-        return reject(err)
       }
-      return resolve(response)
-    }),
-    close: ({ thread: params }) => new Promise(async (resolve, reject) => {
-      let thread
-      try {
-        thread = await closeThread(params)
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(thread)
-    }),
-    receive: ({ message, thread }) => new Promise(async (resolve, reject) => {
-      message = Object.assign({}, message)
+      return response
+    },
+    lookup: ({ botId, channel, ts }) => lookupThread({ botId, channelId: channel, messageId: ts }),
+    open: async ({ botId, channel, user }) => {
+      const thread = await createThread({ botId, channelId: channel, userId: user })
+      return { thread, events: [] }
+    },
+    close: ({ thread: params }) => closeThread(params),
+    receive: ({ message: source, thread }) => {
+      message = Object.assign({}, source)
       delete message.luno
 
       const { ts: messageId } = message
       const { id: threadId, botId, channelId, userId } = thread
-      let response
-      try {
-        response = await createEvent({ threadId, botId, channelId, messageId, message, userId })
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(response)
-    }),
-    send: ({ message, thread }) => new Promise(async (resolve, reject) => {
+      return createEvent({ threadId, botId, channelId, messageId, message, userId })
+    },
+    send: ({ message, thread }) => {
       const { id: threadId, botId, channelId, userId } = thread
 
       let messageId
@@ -219,24 +175,11 @@ export default {
         messageId = message.ts
       }
 
-      let response
-      try {
-        response = await createEvent({ threadId, botId, channelId, message, messageId, userId })
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(response)
-    }),
-    log: ({ thread, event }) => new Promise(async (resolve, reject) => {
+      return createEvent({ threadId, botId, channelId, message, messageId, userId })
+    },
+    log: ({ thread, event }) => {
       const { id: threadId, botId, channelId, userId } = thread
-
-      let response
-      try {
-        response = await createEvent({ threadId, botId, channelId, userId, ...event })
-      } catch (err) {
-        return reject(err)
-      }
-      return resolve(response)
-    }),
+      return createEvent({ threadId, botId, channelId, userId, ...event })
+    },
   },
 }
