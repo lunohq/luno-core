@@ -188,6 +188,6 @@ export async function closeThread({ botId, channelId, userId, id }) {
     ReturnValues: 'ALL_NEW',
   }
 
-  const data = await client.update(params)
+  const data = await client.update(params).promise()
   return fromDB(Thread, data.Attributes)
 }
