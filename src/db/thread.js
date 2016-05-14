@@ -97,7 +97,7 @@ export async function getThreadEvents(threadId) {
       ':threadId': threadId,
     },
   }
-  const data = await client.queryAll(params)
+  const items = await client.queryAll(params)
   return items.map(item => fromDB(ThreadEvent, item))
 }
 
@@ -106,7 +106,7 @@ export async function getThread({ botId, channelId, userId, id }) {
     TableName: threadTable,
     Key: { id, botIdChannelIdUserId: compositeId(botId, channelId, userId) },
   }
-  const data = await client.get(params)
+  const data = await client.get(params).promise()
   const response = {}
 
   if (data.Item) {

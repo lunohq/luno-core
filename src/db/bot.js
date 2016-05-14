@@ -42,8 +42,8 @@ export async function getBots(teamId) {
     },
   }
 
-  const items = await client.query(params).promise()
-  return data.Items.map((item) => fromDB(Bot, item))
+  const data = await client.query(params).promise()
+  return data.Items.map(item => fromDB(Bot, item))
 }
 
 export async function allBots() {
@@ -51,8 +51,8 @@ export async function allBots() {
     TableName: table,
   }
 
-  const items = await client.scan(params).promise()
-  return data.Items.map((item) => fromDB(Bot, item))
+  const data = await client.scan(params).promise()
+  return data.Items.map(item => fromDB(Bot, item))
 }
 
 async function update(params) {

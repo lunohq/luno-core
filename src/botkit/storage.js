@@ -68,7 +68,6 @@ export default {
       } catch (err) {
         return cb(err)
       }
-
       return cb(null, teams)
     },
 
