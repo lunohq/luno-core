@@ -4,25 +4,20 @@ const table = resolveTableName('team-v1')
 
 export class Team {}
 
-export function getTeam(id, options={}) {
+export async function getTeam(id, options={}) {
   let params = {
     TableName: table,
     Key: { id },
   }
 
   params = Object.assign({}, options, params)
-  return new Promise((resolve, reject) => {
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
+  const data = await client.get(params).promise()
 
-      let team
-      if (data.Item) {
-        team = fromDB(Team, data.Item)
-      }
-
-      return resolve(team)
-    })
-  })
+  let team
+  if (data.Item) {
+    team = fromDB(Team, data.Item)
+  }
+  return team
 }
 
 /**
@@ -43,7 +38,7 @@ export function toSlackTeam({ id: teamId, createdBy, name, slack }, { id: botId 
   return slackTeam
 }
 
-export function updateTeam(team) {
+export async function updateTeam(team) {
 
   // normalize to camel case
   team.bot.userId = team.bot.user_id
@@ -81,24 +76,14 @@ export function updateTeam(team) {
     },
     ReturnValues: 'ALL_NEW',
   }
-
-  return new Promise((resolve, reject) => {
-    client.update(params, (err, data) => {
-      if (err) return reject(err)
-      const team = fromDB(Team, data.Attributes)
-      return resolve(team)
-    })
-  })
+  const data = await client.update(params).promise()
+  return fromDB(Team, data.Attributes)
 }
 
-export function getTeams() {
+export async function getTeams() {
   const params = {
     TableName: table,
   }
-  return new Promise((resolve, reject) => {
-    client.scan(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(data.Items.map((item) => fromDB(Team, item)))
-    })
-  })
+  const data = client.scan(params).promise()
+  return data.Items.map((item) => fromDB(Team, item))
 }
