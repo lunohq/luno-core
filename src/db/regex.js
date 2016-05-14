@@ -6,31 +6,26 @@ const table = resolveTableName('regex-v1')
 
 export class Regex {}
 
-export function createRegex({ botId, ...data }) {
-  const regexResponse = new Regex()
-  Object.assign(regexResponse, data)
-  regexResponse.id = uuid.v4()
-  regexResponse.botId = botId
+export async function createRegex({ botId, ...data }) {
+  const instance = new Regex()
+  Object.assign(instance, data)
+  instance.id = uuid.v4()
+  instance.botId = botId
 
   const now = new Date().toISOString()
-  regexResponse.created = now
-  regexResponse.changed = now
+  instance.created = now
+  instance.changed = now
 
   const params = {
     TableName: table,
-    Item: regexResponse,
+    Item: instance,
   }
 
-  return new Promise((resolve, reject) => {
-    client.put(params, (err, data) => {
-      if (err) return reject(err)
-
-      return resolve(regexResponse)
-    })
-  })
+  await client.put(params).promise()
+  return instance
 }
 
-export function getRegexes(botId) {
+export async function getRegexes(botId) {
   const params = {
     TableName: table,
     KeyConditionExpression: 'botId = :botId',
@@ -39,51 +34,35 @@ export function getRegexes(botId) {
     },
     IndexName: 'RegexBotIdPosition',
   }
-
-  return new Promise((resolve, reject) => {
-    client.queryAll(params, (err, items) => {
-      if (err) return reject(err)
-      return resolve(items.map((item) => fromDB(Regex, item)))
-    })
-  })
+  const items = await client.queryAll(params)
+  return items.map((item) => fromDB(Regex, item))
 }
 
-export function getRegex(id) {
+export async function getRegex(id) {
   const params = {
     TableName: table,
     Key: { id },
   }
-
-  return new Promise((resolve, reject) => {
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
-
-      let regexResponse
-      if (data.Item) {
-        regexResponse = fromDB(Regex, data.Item)
-      }
-
-      return resolve(regexResponse)
-    })
-  })
+  const data = await client.get(params).promise()
+  let instance
+  if (data.Item) {
+    instance = fromDB(Regex, data.Item)
+  }
+  return instance
 }
 
-export function deleteRegex(botId, id) {
+export async function deleteRegex(botId, id) {
   const params = {
     TableName: table,
     Key: { id, botId },
     ReturnValues: 'ALL_OLD',
   }
 
-  return new Promise((resolve, reject) => {
-    client.delete(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(fromDB(Regex, data.Attributes))
-    })
-  })
+  const data = await client.delete(params).promise()
+  return fromDB(Regex, data.Attributes)
 }
 
-export function updateRegex({ botId, id, regex, body, position }) {
+export async function updateRegex({ botId, id, regex, body, position }) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
@@ -110,11 +89,6 @@ export function updateRegex({ botId, id, regex, body, position }) {
     ReturnValues: 'ALL_NEW',
   }
 
-  return new Promise((resolve, reject) => {
-    client.update(params, (err, data) => {
-      if (err) return reject(err)
-      const regex = fromDB(Regex, data.Attributes)
-      return resolve(regex)
-    })
-  })
+  const data = await client.update(params).promise()
+  return fromDB(Regex, data.Attributes)
 }
