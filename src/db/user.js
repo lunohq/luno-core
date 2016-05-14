@@ -12,27 +12,21 @@ export class AnonymousUser extends User {
   anonymous = true
 }
 
-export function getUser(id) {
-  return new Promise((resolve, reject) => {
-    const params = {
-      TableName: table,
-      Key: { id },
-    }
+export async function getUser(id) {
+  const params = {
+    TableName: table,
+    Key: { id },
+  }
 
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
-
-      let user
-      if (data.Item) {
-        user = fromDB(User, data.Item)
-      }
-
-      return resolve(user)
-    })
-  })
+  const data = await client.get(params).promise()
+  let user
+  if (data.Item) {
+    user = fromDB(User, data.Item)
+  }
+  return user
 }
 
-export function updateUser(user) {
+export async function updateUser(user) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
@@ -65,16 +59,11 @@ export function updateUser(user) {
     ReturnValues: 'ALL_NEW',
   }
 
-  return new Promise((resolve, reject) => {
-    client.update(params, (err, data) => {
-      if (err) return reject(err)
-      user = fromDB(User, data.Attributes)
-      return resolve(user)
-    })
-  })
+  const data = await client.update(params).promise()
+  return fromDB(User, data.Attributes)
 }
 
-export function getUsers(teamId) {
+export async function getUsers(teamId) {
   const params = {
     TableName: table,
     FilterExpression: 'teamId = :teamId',
@@ -82,11 +71,6 @@ export function getUsers(teamId) {
       ':teamId': teamId,
     },
   }
-
-  return new Promise((resolve, reject) => {
-    client.scan(params, (err, data) => {
-      if (err) return reject(err)
-      return resolve(data.Items.map((item) => fromDB(User, item)))
-    })
-  })
+  const data = await client.scan(params).promise()
+  return data.Items.map((item) => fromDB(User, item))
 }

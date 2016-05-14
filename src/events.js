@@ -20,23 +20,15 @@ const sns = new AWS.SNS()
  * @param {String} message message to publish
  * @param {Object} notification instructions on how to publish to sns
  */
-function publish(event, message, notification) {
-  return new Promise(async (resolve, reject) => {
-    if (!client) {
-      client = getClient()
-    }
+async function publish(event, message, notification) {
+  if (!client) {
+    client = getClient()
+  }
 
-    let result
-    try {
-      result = await client.publishAsync(event, message)
-    } catch (err) {
-      return reject(err)
-    }
-    if (notification) {
-      return resolve(sns.publish(notification).promise())
-    }
-    return resolve()
-  })
+  await client.publishAsync(event, message)
+  if (notification) {
+    await sns.publish(notification).promise()
+  }
 }
 
 /**
