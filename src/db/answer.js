@@ -7,7 +7,7 @@ const table = resolveTableName('answer-v1')
 
 export class Answer {}
 
-export function createAnswer({ botId, ...data }) {
+export async function createAnswer({ botId, ...data }) {
   const answer = new Answer()
   Object.assign(answer, data)
   answer.id = uuid.v4()
@@ -22,42 +22,26 @@ export function createAnswer({ botId, ...data }) {
     Item: answer,
   }
 
-  return new Promise((resolve, reject) => {
-    client.put(params, async (err, data) => {
-      if (err) return reject(err)
-
-      try {
-        await es.indexAnswer(answer)
-      } catch (err) {
-        return reject(err)
-      }
-
-      return resolve(answer)
-    })
-  })
+  await client.put(params).promise()
+  await es.indexAnswer(answer)
+  return answer
 }
 
-export function getAnswer(botId, id) {
+export async function getAnswer(botId, id) {
   const params = {
     TableName: table,
     Key: { id, botId },
   }
 
-  return new Promise((resolve, reject) => {
-    client.get(params, (err, data) => {
-      if (err) return reject(err)
-
-      let answer
-      if (data.Item) {
-        answer = fromDB(Answer, data.Item)
-      }
-
-      return resolve(answer)
-    })
-  })
+  const data = await client.get(params).promise()
+  let answer
+  if (data.Item) {
+    answer = fromDB(Answer, data.Item)
+  }
+  return answer
 }
 
-export function getAnswers(botId) {
+export async function getAnswers(botId) {
   const params = {
     TableName: table,
     KeyConditionExpression: 'botId = :botId',
@@ -68,37 +52,23 @@ export function getAnswers(botId) {
     ScanIndexForward: false,
   }
 
-  return new Promise((resolve, reject) => {
-    client.queryAll(params, (err, items) => {
-      if (err) return reject(err)
-      return resolve(items.map((item) => fromDB(Answer, item)))
-    })
-  })
+  const items = await client.queryAll(params)
+  return items.map((item) => fromDB(Answer, item))
 }
 
-export function deleteAnswer(botId, id) {
+export async function deleteAnswer(botId, id) {
   const params = {
     TableName: table,
     Key: { id, botId },
     ReturnValues: 'ALL_OLD',
   }
 
-  return new Promise((resolve, reject) => {
-    client.delete(params, async (err, data) => {
-      if (err) return reject(err)
-
-      try {
-        await es.deleteAnswer(botId, id)
-      } catch (err) {
-        return reject(err)
-      }
-
-      return resolve(fromDB(Answer, data.Attributes))
-    })
-  })
+  const data = await client.delete(params).promise()
+  await es.deleteAnswer(botId, id)
+  return fromDB(Answer, data.Attributes)
 }
 
-export function updateAnswer({ botId, id, title, body }) {
+export async function updateAnswer({ botId, id, title, body }) {
   const params = {
     TableName: table,
     Key: { id, botId },
@@ -121,18 +91,8 @@ export function updateAnswer({ botId, id, title, body }) {
     ReturnValues: 'ALL_NEW',
   }
 
-  return new Promise((resolve, reject) => {
-    client.update(params, async (err, data) => {
-      if (err) return reject(err)
-      const answer = fromDB(Answer, data.Attributes)
-
-      try {
-        await es.indexAnswer(answer)
-      } catch (err) {
-        return reject(err)
-      }
-
-      return resolve(answer)
-    })
-  })
+  const data = await client.update(params).promise()
+  const answer = fromDB(Answer, data.Attributes)
+  await es.indexAnswer(answer)
+  return answer
 }
