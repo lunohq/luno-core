@@ -160,7 +160,7 @@ export default {
     },
     close: ({ thread: params }) => closeThread(params),
     receive: ({ message: source, thread }) => {
-      message = Object.assign({}, source)
+      const message = Object.assign({}, source)
       delete message.luno
 
       const { ts: messageId } = message
