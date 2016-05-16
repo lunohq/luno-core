@@ -1,9 +1,9 @@
-export * as db from './db'
-export * as botkit from './botkit'
-export * as es from './es'
-export * as config from './config'
-export { default as events } from './events'
-export * as redis from './redis'
+import * as db from './db'
+import * as botkit from './botkit'
+import * as es from './es'
+import * as config from './config'
+import events from './events'
+import * as redis from './redis'
 
 export default {
   db,

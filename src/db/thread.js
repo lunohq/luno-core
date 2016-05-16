@@ -64,7 +64,7 @@ export async function createThread({ botId, channelId, userId, ...data }) {
   return thread
 }
 
-function generateEvent({ threadId, botId, channelId, messageId, userId, ...data }) {
+function generateEvent({ offset, threadId, botId, channelId, messageId, userId, ...data }) {
   validate({ threadId, botId, channelId, userId })
   const event = new ThreadEvent()
   Object.assign(event, data)
@@ -78,7 +78,12 @@ function generateEvent({ threadId, botId, channelId, messageId, userId, ...data 
     event.messageId = messageId
   }
 
-  const now = new Date().toISOString()
+  let now = new Date()
+  if (offset) {
+    now = new Date(Date.now() + parseInt(offset))
+  }
+
+  now = now.toISOString()
   event.created = now
   event.changed = now
   return event
@@ -202,7 +207,7 @@ export async function closeThread(args) {
 }
 
 export async function getOrOpenThread(params) {
-  let response = await getOrOpenThread(params)
+  let response = await getOpenThread(params)
   if (!response.thread) {
     const thread = await createThread(params)
     response = { thread, events: [] }
@@ -211,18 +216,40 @@ export async function getOrOpenThread(params) {
 }
 
 export async function commitThread({ thread, close }) {
-  const request = {
-    [threadEventTable]: [],
+  const params = {
+    RequestItems: {},
   }
 
-  for (const event of thread.events) {
-    request[threadEventTable].push({ PutRequest: { Item: generateEvent(event) } })
+  const generatedEvents = []
+  let commit = false
+  for (const index in thread.events) {
+    const event = thread.events[index]
+    if (event.id) {
+      continue
+    }
+
+    if (!params.RequestItems[threadEventTable]) {
+      params.RequestItems[threadEventTable] = []
+    }
+
+    commit = true
+    const generated = generateEvent({ offset: index, ...event })
+    generatedEvents.push(generated)
+    params.RequestItems[threadEventTable].push({ PutRequest: { Item: generated } })
   }
 
-  if (close) {
-    request[threadTable] = [{ PutRequest: { Item: getCloseParams(thread.model) } }]
+  if (close && thread.model.status !== THREAD_STATUS_CLOSED) {
+    commit = true
+    params.RequestItems[threadTable] = [{ PutRequest: { Item: getCloseParams(thread.model) } }]
   }
 
-  console.log('commit request', request)
-  return client.batchWrite(request)
+  if (!commit) {
+    return Promise.resolve()
+  }
+
+  const response = await client.batchWrite(params).promise()
+  if (generatedEvents.length) {
+    thread.events = generatedEvents
+  }
+  return response
 }
