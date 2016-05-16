@@ -8,15 +8,17 @@ const threadEventTable = resolveTableName('thread-event-v1')
 const THREAD_STATUS_OPEN = 0
 const THREAD_STATUS_CLOSED = 1
 
-export const EVENT_GREETING_FLOW = 0
-export const EVENT_HELP_FLOW = 1
-export const EVENT_HUMAN_FLOW = 2
-export const EVENT_ANSWER_FLOW = 3
-export const EVENT_FEEDBACK = 4
-export const EVENT_SMART_ANSWER = 5
-export const EVENT_MULTIPLE_RESULTS = 7
-export const EVENT_NO_RESULTS = 8
-export const EVENT_CLARIFICATION = 9
+export const EVENT_MESSAGE_RECEIVED = 0
+export const EVENT_MESSAGE_SENT = 1
+export const EVENT_GREETING_FLOW = 2
+export const EVENT_HELP_FLOW = 3
+export const EVENT_HUMAN_FLOW = 4
+export const EVENT_ANSWER_FLOW = 5
+export const EVENT_FEEDBACK = 6
+export const EVENT_SMART_ANSWER = 7
+export const EVENT_MULTIPLE_RESULTS = 9
+export const EVENT_NO_RESULTS = 10
+export const EVENT_CLARIFICATION = 11
 
 export const FLOW_EVENTS = [
   EVENT_GREETING_FLOW,
@@ -62,11 +64,11 @@ export async function createThread({ botId, channelId, userId, ...data }) {
   return thread
 }
 
-export async function createEvent({ threadId, botId, channelId, messageId, userId, ...data }) {
+function generateEvent({ threadId, botId, channelId, messageId, userId, ...data }) {
   validate({ threadId, botId, channelId, userId })
-
   const event = new ThreadEvent()
   Object.assign(event, data)
+  event.id = uuid.v4()
   event.threadId = threadId
   event.botId = botId
   event.channelId = channelId
@@ -79,12 +81,15 @@ export async function createEvent({ threadId, botId, channelId, messageId, userI
   const now = new Date().toISOString()
   event.created = now
   event.changed = now
+  return event
+}
 
+export async function createEvent(args) {
+  const event = generateEvent(args)
   const params = {
     TableName: threadEventTable,
     Item: event,
   }
-
   await client.put(params).promise()
   return event
 }
@@ -164,7 +169,7 @@ export async function getOpenThread({ botId, channelId, userId }) {
   return response
 }
 
-export async function closeThread({ botId, channelId, userId, id }) {
+function getCloseParams({ botId, channelId, userId, id }) {
   validate({ botId, channelId, userId, id })
   const params = {
     TableName: threadTable,
@@ -187,7 +192,37 @@ export async function closeThread({ botId, channelId, userId, id }) {
     },
     ReturnValues: 'ALL_NEW',
   }
+  return params
+}
 
+export async function closeThread(args) {
+  const params = getCloseParams(args)
   const data = await client.update(params).promise()
   return fromDB(Thread, data.Attributes)
+}
+
+export async function getOrOpenThread(params) {
+  let response = await getOrOpenThread(params)
+  if (!response.thread) {
+    const thread = await createThread(params)
+    response = { thread, events: [] }
+  }
+  return response
+}
+
+export async function commitThread({ thread, close }) {
+  const request = {
+    [threadEventTable]: [],
+  }
+
+  for (const event of thread.events) {
+    request[threadEventTable].push({ PutRequest: { Item: generateEvent(event) } })
+  }
+
+  if (close) {
+    request[threadTable] = [{ PutRequest: { Item: getCloseParams(thread.model) } }]
+  }
+
+  console.log('commit request', request)
+  return client.batchWrite(request)
 }

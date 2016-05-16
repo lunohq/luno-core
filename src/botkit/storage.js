@@ -143,42 +143,4 @@ export default {
       return redlock.lock(key, interval)
     },
   },
-  threads: {
-    getOrOpen: async ({ botId, channel, user }) => {
-      let response = await getOpenThread({ botId, channelId: channel, userId: user })
-      if (!response.thread) {
-        const thread = await createThread({ botId, channelId: channel, userId: user })
-        response = { thread, events: [] }
-      }
-      return response
-    },
-    lookup: ({ botId, channel, ts }) => lookupThread({ botId, channelId: channel, messageId: ts }),
-    open: async ({ botId, channel, user }) => {
-      const thread = await createThread({ botId, channelId: channel, userId: user })
-      return { thread, events: [] }
-    },
-    close: ({ thread: params }) => closeThread(params),
-    receive: ({ message: source, thread }) => {
-      const message = Object.assign({}, source)
-      delete message.luno
-
-      const { ts: messageId } = message
-      const { id: threadId, botId, channelId, userId } = thread
-      return createEvent({ threadId, botId, channelId, messageId, message, userId })
-    },
-    send: ({ message, thread }) => {
-      const { id: threadId, botId, channelId, userId } = thread
-
-      let messageId
-      if (message.ts) {
-        messageId = message.ts
-      }
-
-      return createEvent({ threadId, botId, channelId, message, messageId, userId })
-    },
-    log: ({ thread, event }) => {
-      const { id: threadId, botId, channelId, userId } = thread
-      return createEvent({ threadId, botId, channelId, userId, ...event })
-    },
-  },
 }
