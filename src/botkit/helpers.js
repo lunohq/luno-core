@@ -1,21 +1,20 @@
 
-export function getFormalName(bot) {
-  return `${bot.identity.name.charAt(0).toUpperCase()}${bot.identity.name.slice(1)}`
+export function getFormalName({ identities: { bot } }) {
+  return `${bot.name.charAt(0).toUpperCase()}${bot.name.slice(1)}`
 }
 
-export function getSummonVerb(message) {
-  const { luno: { directMessage } } = message
+export function getSummonVerb({ _directMessage }) {
   let summon = '@mention'
-  if (directMessage) {
+  if (_directMessage) {
     summon = 'message'
   }
   return summon
 }
 
-export function getSummonName(bot, message) {
-  const { luno: { directMessage } } = message
-  let summonName = `@${bot.identity.name} `
-  if (directMessage) {
+export function getSummonName({ ctx, message }) {
+  const { identities: { bot } } = ctx
+  let summonName = `@${bot.name} `
+  if (message._directMessage) {
     summonName = ''
   }
   return summonName

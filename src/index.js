@@ -5,6 +5,15 @@ import * as config from './config'
 import events from './events'
 import * as redis from './redis'
 
+export {
+  db,
+  botkit,
+  es,
+  config,
+  events,
+  redis,
+}
+
 export default {
   db,
   botkit,

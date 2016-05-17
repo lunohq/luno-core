@@ -5,8 +5,8 @@ import client, { compositeId, fromDB, resolveTableName } from './client'
 const threadTable = resolveTableName('thread-v1')
 const threadEventTable = resolveTableName('thread-event-v1')
 
-const THREAD_STATUS_OPEN = 0
-const THREAD_STATUS_CLOSED = 1
+export const THREAD_STATUS_OPEN = 0
+export const THREAD_STATUS_CLOSED = 1
 
 export const EVENT_MESSAGE_RECEIVED = 0
 export const EVENT_MESSAGE_SENT = 1
@@ -174,7 +174,7 @@ export async function getOpenThread({ botId, channelId, userId }) {
   return response
 }
 
-function getCloseParams({ botId, channelId, userId, id }) {
+export async function closeThread({ botId, channelId, userId, id }) {
   validate({ botId, channelId, userId, id })
   const params = {
     TableName: threadTable,
@@ -197,18 +197,13 @@ function getCloseParams({ botId, channelId, userId, id }) {
     },
     ReturnValues: 'ALL_NEW',
   }
-  return params
-}
-
-export async function closeThread(args) {
-  const params = getCloseParams(args)
   const data = await client.update(params).promise()
   return fromDB(Thread, data.Attributes)
 }
 
 export async function getOrOpenThread(params) {
   let response = await getOpenThread(params)
-  if (!response.thread) {
+  if (!response.thread && params.open) {
     const thread = await createThread(params)
     response = { thread, events: [] }
   }
@@ -238,18 +233,26 @@ export async function commitThread({ thread, close }) {
     params.RequestItems[threadEventTable].push({ PutRequest: { Item: generated } })
   }
 
+  let closePromise
   if (close && thread.model.status !== THREAD_STATUS_CLOSED) {
-    commit = true
-    params.RequestItems[threadTable] = [{ PutRequest: { Item: getCloseParams(thread.model) } }]
+    closePromise = closeThread(thread.model)
   }
 
-  if (!commit) {
-    return Promise.resolve()
+  const promises = []
+  if (closePromise) {
+    promises.push(closePromise)
+  }
+  if (commit) {
+    promises.push(client.batchWrite(params).promise())
   }
 
-  const response = await client.batchWrite(params).promise()
+  const results = await Promise.all(promises)
+  if (closePromise) {
+    thread.model = results[0]
+  }
+
   if (generatedEvents.length) {
     thread.events = generatedEvents
   }
-  return response
+  return results
 }
