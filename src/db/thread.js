@@ -234,7 +234,7 @@ export async function commitThread({ thread, close }) {
   }
 
   let closePromise
-  if (close && thread.model.status !== THREAD_STATUS_CLOSED) {
+  if (close && thread.model && thread.model.status !== THREAD_STATUS_CLOSED) {
     closePromise = closeThread(thread.model)
   }
 
