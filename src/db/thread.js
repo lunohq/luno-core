@@ -19,12 +19,14 @@ export const EVENT_SMART_ANSWER = 7
 export const EVENT_MULTIPLE_RESULTS = 9
 export const EVENT_NO_RESULTS = 10
 export const EVENT_CLARIFICATION = 11
+export const EVENT_ESCALATION_FLOW = 12
 
 export const FLOW_EVENTS = [
   EVENT_GREETING_FLOW,
   EVENT_HELP_FLOW,
   EVENT_HUMAN_FLOW,
   EVENT_ANSWER_FLOW,
+  EVENT_ESCALATION_FLOW,
 ]
 
 export class Thread {}
