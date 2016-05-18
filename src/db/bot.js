@@ -33,8 +33,8 @@ export async function getBot(teamId, id) {
   return fromDB(Bot, data.Item)
 }
 
-export async function getBots(teamId) {
-  const params = {
+export async function getBots(teamId, options={}) {
+  let params = {
     TableName: table,
     KeyConditionExpression: 'teamId = :teamId',
     ExpressionAttributeValues: {
@@ -42,6 +42,7 @@ export async function getBots(teamId) {
     },
   }
 
+  params = Object.assign({}, options, params)
   const data = await client.query(params).promise()
   return data.Items.map(item => fromDB(Bot, item))
 }
