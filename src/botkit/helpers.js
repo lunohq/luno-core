@@ -1,20 +1,18 @@
-
-export function getFormalName({ identities: { bot } }) {
+export function getFormalName(bot) {
   return `${bot.name.charAt(0).toUpperCase()}${bot.name.slice(1)}`
 }
 
-export function getSummonVerb({ _directMessage }) {
+export function getSummonVerb(isDM) {
   let summon = '@mention'
-  if (_directMessage) {
+  if (isDM) {
     summon = 'message'
   }
   return summon
 }
 
-export function getSummonName({ ctx, message }) {
-  const { identities: { bot } } = ctx
+export function getSummonName({ bot, isDM }) {
   let summonName = `@${bot.name} `
-  if (message._directMessage) {
+  if (isDM) {
     summonName = ''
   }
   return summonName
