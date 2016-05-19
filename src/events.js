@@ -5,6 +5,7 @@ import config from './config'
 const events = {
   CREATE_TEAM: 'CREATE_TEAM',
   CREATE_USER: 'CREATE_USER',
+  CREATE_BOT: 'CREATE_BOT',
 }
 
 const handlers = {}
@@ -95,6 +96,9 @@ export default {
       }
       return publish(events.CREATE_USER, payload, notification)
     },
+    createBot(teamId) {
+      return publish(events.CREATE_BOT, teamId)
+    },
   },
   handle: {
     createTeam(handler) {
@@ -108,6 +112,12 @@ export default {
         handler(message)
       }
       registerHandler(events.CREATE_USER, _handler)
+    },
+    createBot(handler) {
+      function _handler(channel, message) {
+        handler(message)
+      }
+      registerHandler(events.CREATE_BOT, _handler)
     },
   },
 }
