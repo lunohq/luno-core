@@ -63,7 +63,7 @@ export async function trackToken({ id, targetTokenId }) {
   return fromDB(AdminToken, data.Attributes)
 }
 
-export async function endToken({ id }) {
+export async function endToken(id) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
