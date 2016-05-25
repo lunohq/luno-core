@@ -137,8 +137,8 @@ export default {
       const { redlock } = retrieveClient()
       return redlock.lock(key, interval)
     },
-    lockThread: ({ botId, channel, user }, interval) => {
-      const key = `bmutex:${botId}:${channel}:${user}`
+    lockThread: ({ botId, channelId, userId }, interval) => {
+      const key = `bmutex:${botId}:${channelId}:${userId}`
       const { redlock } = retrieveClient()
       return redlock.lock(key, interval)
     },
