@@ -88,7 +88,7 @@ export default {
       return publish(events.CREATE_TEAM, teamId, notification)
     },
     createUser(teamId, userId) {
-      const payload = JSON.stringify({ teamId, userId })
+      const payload = JSON.stringify({ teamId, userId, ts: Date.now() })
       const notification = {
         Subject: 'New User',
         Message: payload,
