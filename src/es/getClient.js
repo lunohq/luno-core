@@ -39,6 +39,6 @@ export default function() {
       region: env.aws.region,
       credentials: credentials(),
     },
-    requestTimeout: 2000,
+    requestTimeout: 500,
   })
 }
