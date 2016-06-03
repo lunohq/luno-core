@@ -4,7 +4,12 @@ import { createBot } from '../db/bot'
 
 export default {
   teams: {
-    get: (id) => getTeam(id),
+    get: async (id) => {
+      // Converse expects slack details to be on the Team object.
+      const { slack, ...team } = await getTeam(id)
+      Object.assign(team, slack)
+      return team
+    },
     save: async ({ team: data, isNew }) => {
       const { bot, url, ...other } = data
       if (!other.slack) {
