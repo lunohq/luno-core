@@ -39,6 +39,7 @@ export async function updateUser(user) {
         ${user.user ? ', #user = :user' : ''}
         , #created = if_not_exists(#created, :created)
         , #changed = :changed
+        ${user.email ? ', #email = :email': ''}
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
@@ -60,6 +61,11 @@ export async function updateUser(user) {
   if (user.user) {
     params.ExpressionAttributeNames['#user'] = 'user'
     params.ExpressionAttributeValues[':user'] = user.user
+  }
+
+  if (user.email) {
+    params.ExpressionAttributeNames['#email'] = 'email'
+    params.ExpressionAttributeValues[':email'] = user.email
   }
 
   const data = await client.update(params).promise()
