@@ -24,6 +24,12 @@ export default {
         other.slack.url = url
       }
 
+      if (other.slack && other.slack.bot && other.slack.bot.accessToken) {
+        // Stick with the old way of storing tokens
+        other.slack.bot.token = other.slack.bot.accessToken
+        delete other.slack.bot.accessToken
+      }
+
       const team = await updateTeam(other)
       if (isNew) {
         await createBot({ teamId: team.id, purpose: team.name })
