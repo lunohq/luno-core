@@ -40,9 +40,12 @@ export function toSlackTeam({ id: teamId, createdBy, name, slack }, { id: botId 
 
 export async function updateTeam(team) {
 
+  // TODO remove when we move away from botkit
   // normalize to camel case
-  team.bot.userId = team.bot.user_id
-  delete team.bot.user_id
+  if (team.bot && team.bot.user_id) {
+    team.bot.userId = team.bot.user_id
+    delete team.bot.user_id
+  }
 
   const now = new Date().toISOString()
   const params = {
