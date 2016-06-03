@@ -39,7 +39,7 @@ export async function updateUser(user) {
         ${user.user ? ', #user = :user' : ''}
         , #created = if_not_exists(#created, :created)
         , #changed = :changed
-        ${user.email ? ', #email = :email': ''}
+        ${user.email ? ', #email = :email' : ''}
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
