@@ -6,7 +6,20 @@ export default {
   teams: {
     get: (id) => getTeam(id),
     save: async ({ team: data, isNew }) => {
-      const team = await updateTeam(data)
+      const { bot, url, ...other } = data
+      if (!other.slack) {
+        other.slack = {}
+      }
+
+      if (bot) {
+        other.slack.bot = bot
+      }
+
+      if (url) {
+        other.slack.url = url
+      }
+
+      const team = await updateTeam(other)
       if (isNew) {
         await createBot({ teamId: team.id, purpose: team.name })
       }

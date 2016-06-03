@@ -33,18 +33,17 @@ export async function updateUser(user) {
     Key: { id: user.id },
     UpdateExpression:`
       SET
-        #accessToken = :accessToken,
-        #scopes = :scopes,
-        #teamId = :teamId,
-        #user = :user,
-        #created = if_not_exists(#created, :created),
-        #changed = :changed
+        #accessToken = :accessToken
+        , #scopes = :scopes
+        , #teamId = :teamId
+        ${user.user ? ', #user = :user' : ''}
+        , #created = if_not_exists(#created, :created)
+        , #changed = :changed
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
       '#scopes': 'scopes',
       '#teamId': 'teamId',
-      '#user': 'user',
       '#created': 'created',
       '#changed': 'changed',
     },
@@ -52,11 +51,15 @@ export async function updateUser(user) {
       ':accessToken': user.accessToken,
       ':scopes': user.scopes,
       ':teamId': user.teamId,
-      ':user': user.user,
       ':created': now,
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
+  }
+
+  if (user.user) {
+    params.ExpressionAttributeNames['#user'] = 'user'
+    params.ExpressionAttributeValues[':user'] = user.user
   }
 
   const data = await client.update(params).promise()

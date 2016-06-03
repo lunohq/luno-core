@@ -69,16 +69,13 @@ export async function updateTeam(team) {
     ExpressionAttributeValues: {
       ':createdBy': team.createdBy,
       ':name': team.name,
-      ':slack': {
-        bot: team.bot,
-        url: team.url,
-        token: team.token,
-      },
+      ':slack': team.slack,
       ':created': now,
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
   }
+
   const data = await client.update(params).promise()
   return fromDB(Team, data.Attributes)
 }
