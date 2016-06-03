@@ -2,12 +2,18 @@ import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
 
+const debug = require('debug')('core:converse:storage')
+
 export default {
   teams: {
     get: async (id) => {
       // Converse expects slack details to be on the Team object.
-      const { slack, ...team } = await getTeam(id)
-      Object.assign(team, slack)
+      let team = await getTeam(id)
+      if (team) {
+        const { slack, ...other } = team
+        debug('Translating slack back to team', { other, slack })
+        team = Object.assign(other, slack)
+      }
       return team
     },
     save: async ({ team: data, isNew }) => {
