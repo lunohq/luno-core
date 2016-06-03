@@ -4,6 +4,7 @@ import * as es from './es'
 import * as config from './config'
 import events from './events'
 import * as redis from './redis'
+import * as converse from './converse'
 
 export {
   db,
@@ -12,6 +13,7 @@ export {
   config,
   events,
   redis,
+  converse,
 }
 
 export default {
@@ -21,4 +23,5 @@ export default {
   config,
   events,
   redis,
+  converse,
 }
