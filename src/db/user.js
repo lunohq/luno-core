@@ -4,8 +4,37 @@ import client, { fromDB, resolveTableName } from './client'
 
 const table = resolveTableName('user-v1')
 
+export const ADMIN = 0
+export const TRAINER = 1
+export const CONSUMER = 2
+
+const ROLES = [ADMIN, TRAINER, CONSUMER]
+
+function isValidRole(role) {
+  return ROLES.includes(role)
+}
+
 export class User {
   anonymous = false
+
+  get admin() {
+    // this.role === undefined is for backwards compatibility for existing
+    // admin users.
+    return !this.anonymous && (this.role === undefined || this.role === ADMIN)
+  }
+
+  get trainer() {
+    return !this.anonymous && this.role === TRAINER
+  }
+
+  get consumer() {
+    return !this.anonymous && this.role === CONSUMER
+  }
+
+  canTrain() {
+    return this.admin || this.trainer
+  }
+
 }
 
 export class AnonymousUser extends User {
@@ -40,6 +69,7 @@ export async function updateUser(user) {
         , #created = if_not_exists(#created, :created)
         , #changed = :changed
         ${user.email ? ', #email = :email' : ''}
+        ${user.role !== undefined ? ', #role = :role' : ''}
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
@@ -66,6 +96,13 @@ export async function updateUser(user) {
   if (user.email) {
     params.ExpressionAttributeNames['#email'] = 'email'
     params.ExpressionAttributeValues[':email'] = user.email
+  }
+
+  if (user.role !== undefined) {
+    if (!isValidRole(user.role)) throw new Error('Invalid role')
+
+    params.ExpressionAttributeNames['#role'] = 'role'
+    params.ExpressionAttributeValues[':role'] = user.role
   }
 
   const data = await client.update(params).promise()
