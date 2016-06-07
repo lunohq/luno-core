@@ -2,7 +2,7 @@ import uuid from 'node-uuid'
 
 import client, { fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('user-v1')
+export const table = resolveTableName('user-v1')
 
 export const ADMIN = 0
 export const TRAINER = 1
@@ -139,6 +139,20 @@ export async function getUsers(teamId) {
       ':teamId': teamId,
     },
   }
-  const data = await client.scan(params).promise()
+  const data = await client.scanAll(params)
   return data.Items.map((item) => fromDB(User, item))
+}
+
+export async function scan(options = {}) {
+  const params = {
+    TableName: table,
+    ...options,
+  }
+
+  let users
+  let items = await client.scanAll(params)
+  if (items) {
+    users = items.map((item) => fromDB(User, item))
+  }
+  return users
 }

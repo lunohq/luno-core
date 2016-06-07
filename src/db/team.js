@@ -84,6 +84,6 @@ export async function getTeams() {
   const params = {
     TableName: table,
   }
-  const data = await client.scan(params).promise()
+  const data = await client.scanAll(params)
   return data.Items.map((item) => fromDB(Team, item))
 }

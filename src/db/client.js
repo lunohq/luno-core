@@ -7,7 +7,6 @@ class Client extends AWS.DynamoDB.DocumentClient {
    * Return all items that match the query.
    *
    * @param {Object} params the query params
-   * @param {Function} cb callback
    * @param {Array} items array of items that will be returned
    */
   async queryAll(params, items = []) {
@@ -17,6 +16,24 @@ class Client extends AWS.DynamoDB.DocumentClient {
     if (LastEvaluatedKey) {
       const nextParams = Object.assign({}, params, { LastEvaluatedKey })
       await this.queryAll(nextParams, items)
+    } else {
+      return items
+    }
+  }
+
+  /**
+   * Return all items that match the scan.
+   *
+   * @param {Object} params the query params
+   * @param {Array} items array of items that will be returned
+   */
+  async scanAll(params, items = []) {
+    const data = await this.scan(params).promise()
+    items.push(...data.Items)
+    const { LastEvaluatedKey } = data
+    if (LastEvaluatedKey) {
+      const nextParams = Object.assign({}, params, { LastEvaluatedKey })
+      await this.scanAll(nextParams, items)
     } else {
       return items
     }
