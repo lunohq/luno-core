@@ -77,13 +77,11 @@ export async function updateUser(user) {
       '#teamId': 'teamId',
       '#created': 'created',
       '#changed': 'changed',
-      '#invite': 'invite',
     },
     ExpressionAttributeValues: {
       ':teamId': user.teamId,
       ':created': now,
       ':changed': now,
-      ':invite': invite,
     },
     ReturnValues: 'ALL_NEW',
   }
