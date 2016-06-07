@@ -17,22 +17,22 @@ function isValidRole(role) {
 export class User {
   anonymous = false
 
-  get admin() {
+  get isAdmin() {
     // this.role === undefined is for backwards compatibility for existing
     // admin users.
     return !this.anonymous && (this.role === undefined || this.role === ADMIN)
   }
 
-  get trainer() {
+  get isTrainer() {
     return !this.anonymous && this.role === TRAINER
   }
 
-  get consumer() {
+  get isConsumer() {
     return !this.anonymous && this.role === CONSUMER
   }
 
   get isStaff() {
-    return this.admin || this.trainer
+    return this.isAdmin || this.isTrainer
   }
 
 }
