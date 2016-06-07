@@ -84,31 +84,35 @@ export async function updateUser(user) {
     Key: { id: user.id },
     UpdateExpression:`
       SET
-        #accessToken = :accessToken
-        , #scopes = :scopes
+        #created = if_not_exists(#created, :created)
         , #teamId = :teamId
-        ${user.user ? ', #user = :user' : ''}
-        , #created = if_not_exists(#created, :created)
         , #changed = :changed
         , #role = :role
+        ${user.accessToken ? ', #accessToken = :accessToken' : ''}
+        ${user.user ? ', #user = :user' : ''}
         ${user.email ? ', #email = :email' : ''}
+        ${user.scopes ? ', #scopes = :scopes' : ''}
     `,
     ExpressionAttributeNames: {
-      '#accessToken': 'accessToken',
-      '#scopes': 'scopes',
+      '#role': 'role',
       '#teamId': 'teamId',
       '#created': 'created',
       '#changed': 'changed',
     },
     ExpressionAttributeValues: {
-      ':accessToken': user.accessToken,
-      ':scopes': user.scopes,
       ':teamId': user.teamId,
       ':created': now,
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
   }
+
+  let role = user.role
+  if (role === undefined) {
+    role = CONSUMER
+  }
+  params.ExpressionAttributeValues[':role'] = role
+  if (!isValidRole(role)) throw new Error('Invalid role')
 
   if (user.user) {
     params.ExpressionAttributeNames['#user'] = 'user'
@@ -120,13 +124,15 @@ export async function updateUser(user) {
     params.ExpressionAttributeValues[':email'] = user.email
   }
 
-  let role = user.role
-  params.ExpressionAttributeNames['#role'] = 'role'
-  if (role === undefined) {
-    role = CONSUMER
+  if (user.scopes) {
+    params.ExpressionAttributeNames['#scopes'] = 'scopes'
+    params.ExpressionAttributeValues[':scopes'] = user.scopes
   }
-  params.ExpressionAttributeValues[':role'] = role
-  if (!isValidRole(role)) throw new Error('Invalid role')
+
+  if (user.accessToken) {
+    params.ExpressionAttributeNames['#accessToken'] = 'accessToken'
+    params.ExpressionAttributeValues[':accessToken'] = user.accessToken
+  }
 
   const data = await client.update(params).promise()
   return fromDB(User, data.Attributes)
