@@ -55,28 +55,6 @@ export async function getUser(id) {
   return user
 }
 
-export async function updateUserRole({ id, role }) {
-  if (!isValidRole(role)) throw new Error('Invalid Role')
-
-  const now = new Date().toISOString()
-  const params = {
-    TableName: table,
-    Key: { id },
-    UpdateExpression:`
-      SET #role = :role
-    `,
-    ExpressionAttributeNames: {
-      '#role': 'role',
-    },
-    ExpressionAttributeValues: {
-      ':role': role,
-    },
-    ReturnValues: 'ALL_NEW',
-  }
-  const data = await client.update(params).promise()
-  return fromDB(User, data.Attributes)
-}
-
 export async function updateUser(user) {
   const now = new Date().toISOString()
   const params = {
