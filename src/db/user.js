@@ -70,17 +70,20 @@ export async function updateUser(user) {
         ${user.user ? ', #user = :user' : ''}
         ${user.email ? ', #email = :email' : ''}
         ${user.scopes ? ', #scopes = :scopes' : ''}
+        ${user.invite ? ', #invite = :invite' : ''}
     `,
     ExpressionAttributeNames: {
       '#role': 'role',
       '#teamId': 'teamId',
       '#created': 'created',
       '#changed': 'changed',
+      '#invite': 'invite',
     },
     ExpressionAttributeValues: {
       ':teamId': user.teamId,
       ':created': now,
       ':changed': now,
+      ':invite': invite,
     },
     ReturnValues: 'ALL_NEW',
   }
@@ -110,6 +113,11 @@ export async function updateUser(user) {
   if (user.accessToken) {
     params.ExpressionAttributeNames['#accessToken'] = 'accessToken'
     params.ExpressionAttributeValues[':accessToken'] = user.accessToken
+  }
+
+  if (user.invite) {
+    params.ExpressionAttributeNames['#invite'] = 'invite'
+    params.ExpressionAttributeValues[':invite'] = user.invite
   }
 
   const data = await client.update(params).promise()
