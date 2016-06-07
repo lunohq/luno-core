@@ -167,6 +167,7 @@ export async function getAdmins(teamId) {
     },
     ExpressionAttributeValues: {
       ':admin': ADMIN,
+      ':teamId': teamId,
     },
   }
   return executeScan(params)
