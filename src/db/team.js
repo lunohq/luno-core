@@ -84,6 +84,11 @@ export async function getTeams() {
   const params = {
     TableName: table,
   }
-  const data = await client.scanAll(params)
-  return data.Items.map((item) => fromDB(Team, item))
+
+  let teams
+  const items = await client.scanAll(params)
+  if (items) {
+    teams = items.map((item) => fromDB(Team, item))
+  }
+  return items
 }

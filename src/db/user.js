@@ -124,8 +124,13 @@ export async function getUsers(teamId) {
       ':teamId': teamId,
     },
   }
-  const data = await client.scanAll(params)
-  return data.Items.map((item) => fromDB(User, item))
+
+  let users
+  const items = await client.scanAll(params)
+  if (items) {
+    users = items.map((item) => fromDB(User, item))
+  }
+  return users
 }
 
 export async function scan(options = {}) {
