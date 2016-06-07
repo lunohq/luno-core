@@ -122,6 +122,15 @@ export async function updateUser(user) {
   return fromDB(User, data.Attributes)
 }
 
+async function executeScan(params) {
+  let users
+  const items = await client.scanAll(params)
+  if (items) {
+    users = items.map((item) => fromDB(User, item))
+  }
+  return users
+}
+
 export async function getUsers(teamId) {
   const params = {
     TableName: table,
@@ -130,13 +139,7 @@ export async function getUsers(teamId) {
       ':teamId': teamId,
     },
   }
-
-  let users
-  const items = await client.scanAll(params)
-  if (items) {
-    users = items.map((item) => fromDB(User, item))
-  }
-  return users
+  return executeScan(params)
 }
 
 export async function getStaff(teamId) {
@@ -152,13 +155,21 @@ export async function getStaff(teamId) {
       ':trainer': TRAINER,
     },
   }
+  return executeScan(params)
+}
 
-  let users
-  const items = await client.scanAll(params)
-  if (items) {
-    users = items.map((item) => fromDB(User, item))
+export async function getAdmins(teamId) {
+  const params = {
+    TableName: table,
+    FilterExpression: 'teamId = :teamId AND #role = :admin',
+    ExpressionAttributeNames: {
+      '#role': 'role',
+    },
+    ExpressionAttributeValues: {
+      ':admin': ADMIN,
+    },
   }
-  return users
+  return executeScan(params)
 }
 
 export async function scan(options = {}) {
@@ -166,11 +177,5 @@ export async function scan(options = {}) {
     TableName: table,
     ...options,
   }
-
-  let users
-  let items = await client.scanAll(params)
-  if (items) {
-    users = items.map((item) => fromDB(User, item))
-  }
-  return users
+  return executeScan(params)
 }
