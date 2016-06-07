@@ -139,6 +139,28 @@ export async function getUsers(teamId) {
   return users
 }
 
+export async function getStaff(teamId) {
+  const params = {
+    TableName: table,
+    FilterExpression: 'teamId = :teamId AND #role IN (:admin, :trainer)',
+    ExpressionAttributeNames: {
+      '#role': 'role',
+    },
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+      ':admin': ADMIN,
+      ':trainer': TRAINER,
+    },
+  }
+
+  let users
+  const items = await client.scanAll(params)
+  if (items) {
+    users = items.map((item) => fromDB(User, item))
+  }
+  return users
+}
+
 export async function scan(options = {}) {
   const params = {
     TableName: table,
