@@ -90,8 +90,8 @@ export async function updateUser(user) {
         ${user.user ? ', #user = :user' : ''}
         , #created = if_not_exists(#created, :created)
         , #changed = :changed
+        , #role = :role
         ${user.email ? ', #email = :email' : ''}
-        ${user.role !== undefined ? ', #role = :role' : ''}
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
@@ -120,12 +120,13 @@ export async function updateUser(user) {
     params.ExpressionAttributeValues[':email'] = user.email
   }
 
-  if (user.role !== undefined) {
-    if (!isValidRole(user.role)) throw new Error('Invalid role')
-
-    params.ExpressionAttributeNames['#role'] = 'role'
-    params.ExpressionAttributeValues[':role'] = user.role
+  let role = user.role
+  params.ExpressionAttributeNames['#role'] = 'role'
+  if (role === undefined) {
+    role = CONSUMER
   }
+  params.ExpressionAttributeValues[':role'] = role
+  if (!isValidRole(role)) throw new Error('Invalid role')
 
   const data = await client.update(params).promise()
   return fromDB(User, data.Attributes)
