@@ -31,7 +31,7 @@ export class User {
     return !this.anonymous && this.role === CONSUMER
   }
 
-  canTrain() {
+  get isStaff() {
     return this.admin || this.trainer
   }
 
