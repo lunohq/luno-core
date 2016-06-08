@@ -89,7 +89,7 @@ export async function updateUser(user) {
   if (user.role !== undefined) {
     if (!isValidRole(user.role)) throw new Error('Invalid role')
     params.ExpressionAttributeNames['#role'] = 'role'
-    params.ExpressionAttributeValues[':role'] = role
+    params.ExpressionAttributeValues[':role'] = user.role
   }
 
   if (user.user) {
