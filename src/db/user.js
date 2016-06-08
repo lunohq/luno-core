@@ -65,7 +65,7 @@ export async function updateUser(user) {
         #created = if_not_exists(#created, :created)
         , #teamId = :teamId
         , #changed = :changed
-        , #role = :role
+        ${user.role !== undefined ? ', #role = :role' : ''}
         ${user.accessToken ? ', #accessToken = :accessToken' : ''}
         ${user.user ? ', #user = :user' : ''}
         ${user.email ? ', #email = :email' : ''}
@@ -74,7 +74,6 @@ export async function updateUser(user) {
         ${user.profile ? ', #profile = :profile' : ''}
     `,
     ExpressionAttributeNames: {
-      '#role': 'role',
       '#teamId': 'teamId',
       '#created': 'created',
       '#changed': 'changed',
@@ -87,12 +86,11 @@ export async function updateUser(user) {
     ReturnValues: 'ALL_NEW',
   }
 
-  let role = user.role
-  if (role === undefined) {
-    role = CONSUMER
+  if (user.role !== undefined) {
+    if (!isValidRole(user.role)) throw new Error('Invalid role')
+    params.ExpressionAttributeNames['#role'] = 'role'
+    params.ExpressionAttributeValues[':role'] = role
   }
-  params.ExpressionAttributeValues[':role'] = role
-  if (!isValidRole(role)) throw new Error('Invalid role')
 
   if (user.user) {
     params.ExpressionAttributeNames['#user'] = 'user'
