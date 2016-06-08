@@ -45,12 +45,6 @@ export default {
   },
   users: {
     get: (id) => getUser(id),
-    save: ({ user }) => {
-      const { name, ...data } = user
-      if (name) {
-        data.user = name
-      }
-      return updateUser(data)
-    },
+    save: ({ user }) => updateUser(user),
   },
 }
