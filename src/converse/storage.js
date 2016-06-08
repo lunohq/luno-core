@@ -17,7 +17,7 @@ export default {
       return team
     },
     save: async ({ team: data, isNew }) => {
-      const { bot, url, ...other } = data
+      const { bot, url, domain, ...other } = data
       if (!other.slack) {
         other.slack = {}
       }
@@ -28,6 +28,10 @@ export default {
 
       if (url) {
         other.slack.url = url
+      }
+
+      if (domain) {
+        other.slack.domain = domain
       }
 
       if (other.slack && other.slack.bot && other.slack.bot.accessToken) {
