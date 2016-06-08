@@ -107,11 +107,18 @@ export async function updateUser(user) {
   }
 
   if (user.profile) {
+    const profile = {}
+    // dynamodb will throw an error if we attempt to save empty strings
+    for (const key of Object.keys(user.profile)) {
+      const value = user.profile[key]
+      if (value !== '') {
+        profile[key] = value
+      }
+    }
     params.ExpressionAttributeNames['#profile'] = 'profile'
-    params.ExpressionAttributeValues[':profile'] = user.profile
+    params.ExpressionAttributeValues[':profile'] = profile
   }
 
-  console.log('Updating user', JSON.stringify(user))
   const data = await client.update(params).promise()
   return fromDB(User, data.Attributes)
 }
