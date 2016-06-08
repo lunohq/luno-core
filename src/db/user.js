@@ -111,6 +111,7 @@ export async function updateUser(user) {
     params.ExpressionAttributeValues[':profile'] = user.profile
   }
 
+  console.log('Updating user', JSON.stringify(user))
   const data = await client.update(params).promise()
   return fromDB(User, data.Attributes)
 }
