@@ -71,6 +71,7 @@ export async function updateUser(user) {
         ${user.email ? ', #email = :email' : ''}
         ${user.scopes ? ', #scopes = :scopes' : ''}
         ${user.invite ? ', #invite = :invite' : ''}
+        ${user.profile ? ', #profile = :profile' : ''}
     `,
     ExpressionAttributeNames: {
       '#role': 'role',
@@ -116,6 +117,19 @@ export async function updateUser(user) {
   if (user.invite) {
     params.ExpressionAttributeNames['#invite'] = 'invite'
     params.ExpressionAttributeValues[':invite'] = user.invite
+  }
+
+  if (user.profile) {
+    const profile = {}
+    // dynamodb will throw an error if we attempt to save empty strings
+    for (const key of Object.keys(user.profile)) {
+      const value = user.profile[key]
+      if (value !== '') {
+        profile[key] = value
+      }
+    }
+    params.ExpressionAttributeNames['#profile'] = 'profile'
+    params.ExpressionAttributeValues[':profile'] = profile
   }
 
   const data = await client.update(params).promise()
