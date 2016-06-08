@@ -70,6 +70,7 @@ export async function updateUser(user) {
         , #changed = :changed
         ${user.email ? ', #email = :email' : ''}
         ${user.role !== undefined ? ', #role = :role' : ''}
+        ${user.profile ? ', #profile = :profile' : ''}
     `,
     ExpressionAttributeNames: {
       '#accessToken': 'accessToken',
@@ -103,6 +104,11 @@ export async function updateUser(user) {
 
     params.ExpressionAttributeNames['#role'] = 'role'
     params.ExpressionAttributeValues[':role'] = user.role
+  }
+
+  if (user.profile) {
+    params.ExpressionAttributeNames['#profile'] = 'profile'
+    params.ExpressionAttributeValues[':profile'] = user.profile
   }
 
   const data = await client.update(params).promise()
