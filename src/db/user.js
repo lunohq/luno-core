@@ -2,7 +2,7 @@ import uuid from 'node-uuid'
 
 import client, { fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('user-v1')
+export const table = resolveTableName('user-v1')
 
 export const ADMIN = 0
 export const TRAINER = 1
@@ -17,22 +17,22 @@ function isValidRole(role) {
 export class User {
   anonymous = false
 
-  get admin() {
+  get isAdmin() {
     // this.role === undefined is for backwards compatibility for existing
     // admin users.
     return !this.anonymous && (this.role === undefined || this.role === ADMIN)
   }
 
-  get trainer() {
+  get isTrainer() {
     return !this.anonymous && this.role === TRAINER
   }
 
-  get consumer() {
+  get isConsumer() {
     return !this.anonymous && this.role === CONSUMER
   }
 
-  canTrain() {
-    return this.admin || this.trainer
+  get isStaff() {
+    return this.isAdmin || this.isTrainer
   }
 
 }
@@ -62,31 +62,34 @@ export async function updateUser(user) {
     Key: { id: user.id },
     UpdateExpression:`
       SET
-        #accessToken = :accessToken
-        , #scopes = :scopes
+        #created = if_not_exists(#created, :created)
         , #teamId = :teamId
-        ${user.user ? ', #user = :user' : ''}
-        , #created = if_not_exists(#created, :created)
         , #changed = :changed
-        ${user.email ? ', #email = :email' : ''}
         ${user.role !== undefined ? ', #role = :role' : ''}
+        ${user.accessToken ? ', #accessToken = :accessToken' : ''}
+        ${user.user ? ', #user = :user' : ''}
+        ${user.email ? ', #email = :email' : ''}
+        ${user.scopes ? ', #scopes = :scopes' : ''}
+        ${user.invite ? ', #invite = :invite' : ''}
         ${user.profile ? ', #profile = :profile' : ''}
     `,
     ExpressionAttributeNames: {
-      '#accessToken': 'accessToken',
-      '#scopes': 'scopes',
       '#teamId': 'teamId',
       '#created': 'created',
       '#changed': 'changed',
     },
     ExpressionAttributeValues: {
-      ':accessToken': user.accessToken,
-      ':scopes': user.scopes,
       ':teamId': user.teamId,
       ':created': now,
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
+  }
+
+  if (user.role !== undefined) {
+    if (!isValidRole(user.role)) throw new Error('Invalid role')
+    params.ExpressionAttributeNames['#role'] = 'role'
+    params.ExpressionAttributeValues[':role'] = user.role
   }
 
   if (user.user) {
@@ -99,11 +102,19 @@ export async function updateUser(user) {
     params.ExpressionAttributeValues[':email'] = user.email
   }
 
-  if (user.role !== undefined) {
-    if (!isValidRole(user.role)) throw new Error('Invalid role')
+  if (user.scopes) {
+    params.ExpressionAttributeNames['#scopes'] = 'scopes'
+    params.ExpressionAttributeValues[':scopes'] = user.scopes
+  }
 
-    params.ExpressionAttributeNames['#role'] = 'role'
-    params.ExpressionAttributeValues[':role'] = user.role
+  if (user.accessToken) {
+    params.ExpressionAttributeNames['#accessToken'] = 'accessToken'
+    params.ExpressionAttributeValues[':accessToken'] = user.accessToken
+  }
+
+  if (user.invite) {
+    params.ExpressionAttributeNames['#invite'] = 'invite'
+    params.ExpressionAttributeValues[':invite'] = user.invite
   }
 
   if (user.profile) {
@@ -123,6 +134,15 @@ export async function updateUser(user) {
   return fromDB(User, data.Attributes)
 }
 
+async function executeScan(params) {
+  let users
+  const items = await client.scanAll(params)
+  if (items) {
+    users = items.map((item) => fromDB(User, item))
+  }
+  return users
+}
+
 export async function getUsers(teamId) {
   const params = {
     TableName: table,
@@ -131,6 +151,44 @@ export async function getUsers(teamId) {
       ':teamId': teamId,
     },
   }
-  const data = await client.scan(params).promise()
-  return data.Items.map((item) => fromDB(User, item))
+  return executeScan(params)
+}
+
+export async function getStaff(teamId) {
+  const params = {
+    TableName: table,
+    FilterExpression: 'teamId = :teamId AND #role IN (:admin, :trainer)',
+    ExpressionAttributeNames: {
+      '#role': 'role',
+    },
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+      ':admin': ADMIN,
+      ':trainer': TRAINER,
+    },
+  }
+  return executeScan(params)
+}
+
+export async function getAdmins(teamId) {
+  const params = {
+    TableName: table,
+    FilterExpression: 'teamId = :teamId AND #role = :admin',
+    ExpressionAttributeNames: {
+      '#role': 'role',
+    },
+    ExpressionAttributeValues: {
+      ':admin': ADMIN,
+      ':teamId': teamId,
+    },
+  }
+  return executeScan(params)
+}
+
+export async function scan(options = {}) {
+  const params = {
+    TableName: table,
+    ...options,
+  }
+  return executeScan(params)
 }
