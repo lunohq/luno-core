@@ -68,7 +68,7 @@ export async function deleteAnswer(botId, id) {
   return fromDB(Answer, data.Attributes)
 }
 
-export async function updateAnswer({ botId, id, title, body }) {
+export async function updateAnswer({ botId, id, title, body, updatedBy }) {
   const params = {
     TableName: table,
     Key: { id, botId },
@@ -76,17 +76,20 @@ export async function updateAnswer({ botId, id, title, body }) {
       SET
         #title = :title,
         #body = :body,
-        #changed = :changed
+        #changed = :changed,
+        #updatedBy = :updatedBy
     `,
     ExpressionAttributeNames: {
       '#title': 'title',
       '#body': 'body',
       '#changed': 'changed',
+      '#updatedBy': 'updatedBy',
     },
     ExpressionAttributeValues: {
       ':title': title,
       ':body': body,
       ':changed': new Date().toISOString(),
+      ':updatedBy': updatedBy,
     },
     ReturnValues: 'ALL_NEW',
   }
