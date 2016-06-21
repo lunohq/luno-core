@@ -42,7 +42,10 @@ export default {
 
       const team = await updateTeam(other)
       if (isNew) {
-        await createBot({ teamId: team.id, purpose: team.name })
+        await Promise.all([
+          await createBot({ teamId: team.id, purpose: team.name }),
+          await createTopic({ teamId: team.id, isDefault: true }),
+        ])
       }
       return team
     },
