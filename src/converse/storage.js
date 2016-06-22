@@ -1,6 +1,7 @@
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
+import { createTopic } from '../db/topic'
 
 const debug = require('debug')('core:converse:storage')
 
