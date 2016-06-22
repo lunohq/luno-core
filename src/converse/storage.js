@@ -13,6 +13,10 @@ export default {
         const { slack, ...other } = team
         debug('Translating slack back to team', { other, slack })
         team = Object.assign(other, slack)
+        // Converse expects accessToken
+        if (team.bot && team.bot.token && !team.bot.accessToken) {
+          team.bot.accessToken = team.bot.token
+        }
       }
       return team
     },
