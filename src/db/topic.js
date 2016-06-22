@@ -21,7 +21,7 @@ export async function createTopic({ teamId, ...data }) {
   topic.id = uuid.v4()
   topic.teamId = teamId
 
-  const now = new Data().toISOString()
+  const now = new Date().toISOString()
   topic.created = now
   topic.changed = now
 
