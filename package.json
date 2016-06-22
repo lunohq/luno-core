@@ -1,6 +1,6 @@
 {
   "name": "luno-core",
-  "version": "1.11.2",
+  "version": "1.11.3",
   "description": "Core logic for luno",
   "main": "lib/index.js",
   "scripts": {
