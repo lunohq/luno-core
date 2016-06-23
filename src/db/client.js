@@ -1,5 +1,7 @@
 import AWS from 'aws-sdk'
+import Redlock from 'redlock'
 import config from '../config'
+import getClient from '../redis/getClient'
 
 class Client extends AWS.DynamoDB.DocumentClient {
 
@@ -74,13 +76,30 @@ export function compositeId(...parts) {
 }
 
 /**
- * Helper for deconstructing a composite key in our standard foramt.
+ * Helper for deconstructing a composite key in our standard format.
  *
  * @param {String} id composite id
  * @return {Array[String]} composite id parts
  */
 export function deconstructId(id) {
   return id.split('_')
+}
+
+/**
+ * Helper for creating a lock during a transaction.
+ *
+ * @param {String} key key we're locking
+ * @param {Number} ttl optional ttl for the lock
+ * @return {Redlock} redlock
+ */
+export function lock(key, ttl = 5000) {
+  const client = getClient()
+  const redlock = new Redlock([client], {
+    retryCount: 3,
+    retryDelay: 100,
+    driftFactor: 0.01,
+  })
+  return redlock.lock(key, ttl)
 }
 
 // XXX We shouldn't instantly connect to DynamoDB like this

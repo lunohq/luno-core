@@ -4,7 +4,15 @@ const type = 'reply'
 
 const client = getClient()
 
-export function indexReply({ id, ...body }) {
+function newTopicPrefix(topics) {
+  const names = topics.map(topic => `[${topic.name}]`)
+  return names.join(' ')
+}
+
+export function indexReply({ reply: { id, title, ...body }, topics }) {
+  const prefix = newTopicPrefix(topics)
+  const prefixedTitle = `${prefix} ${title}`.trim()
+  body.title = prefixedTitle
   return client.index({
     ...config.write,
     type,

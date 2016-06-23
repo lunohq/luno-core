@@ -65,10 +65,23 @@ export async function getDefaultTopic(teamId) {
       ':default': 1,
     },
   }
-  const topics = await client.query(params).promise()
+  const data = await client.query(params).promise()
   let topic
-  if (topics.length) {
-    topic = fromDB(Topic, topics[0])
+  if (data.Items && data.Items.length) {
+    topic = fromDB(Topic, data.Items[0])
   }
   return topic
+}
+
+export async function getTopicsWithIds({ teamId, topicIds }) {
+  const params = {
+    RequestItems: {
+      [table]: {
+        Keys: topicIds.map(topicId => { teamId, topicId }),
+      },
+    },
+  }
+  const data = await client.batchGet(params).promise()
+  console.log(data)
+  return data
 }
