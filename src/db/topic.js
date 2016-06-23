@@ -54,3 +54,21 @@ export async function isValidName({ teamId, name }) {
     throw err
   }
 }
+
+export async function getDefaultTopic(teamId) {
+  const params = {
+    TableName: topicTable,
+    IndexName: 'TeamIdIsDefaultIndex',
+    KeyConditionExpression: 'teamId = :teamId AND isDefault = :default',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+      ':default': 1,
+    },
+  }
+  const topics = await client.query(params).promise()
+  let topic
+  if (topics.length) {
+    topic = fromDB(Topic, topics[0])
+  }
+  return topic
+}
