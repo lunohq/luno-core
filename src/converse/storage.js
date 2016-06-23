@@ -1,6 +1,7 @@
 import { getTeam, updateTeam, getTeams } from '../db/team'
 import { getUser, updateUser } from '../db/user'
 import { createBot } from '../db/bot'
+import { createTopic } from '../db/topic'
 
 const debug = require('debug')('core:converse:storage')
 
@@ -48,6 +49,7 @@ export default {
       if (isNew) {
         await Promise.all([
           await createBot({ teamId: team.id, purpose: team.name }),
+          await createTopic({ teamId: team.id, isDefault: 1 }),
         ])
       }
       return team
