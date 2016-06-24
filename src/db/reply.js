@@ -36,7 +36,7 @@ export async function createReply({ teamId, topicId, createdBy, ...data }) {
   }
 
   const res = await Promise.all([
-    addItemToTopics({ teamId, createdBy, itemId: id, topicIds: [topicId] }),
+    addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
     client.put(params).promise(),
     getTopicsWithIds([topicId]),
   ])
