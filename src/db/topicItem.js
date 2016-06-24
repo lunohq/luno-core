@@ -43,7 +43,7 @@ export async function getTopicIdsForItem({ teamId, itemId }) {
   const data = await client.query(params).promise()
   let topicIds = []
   if (data.Items) {
-    for (const item in data.Items) {
+    for (const item of data.Items) {
       topicIds.push(item.topicId)
     }
   }

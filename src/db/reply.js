@@ -6,10 +6,13 @@ import {
   removeItemFromTopics,
   addItemToTopics,
   getItemsForTopic,
+  getTopicIdsForItem,
   removeItem,
 } from './topicItem'
 import { getTopicsWithIds } from './topic'
 import * as es from '../es/reply'
+
+const debug = require('debug')('core:db:reply')
 
 const table = resolveTableName('reply-v1')
 
@@ -19,10 +22,16 @@ export function lockReply({ teamId, id }) {
   return lock(`reply-mutex-${teamId}:${id}`)
 }
 
-export async function createReply({ teamId, topicId, createdBy, ...data }) {
+export async function createReply({ id, teamId, topicId, createdBy, ...data }) {
   const reply = new Reply()
   Object.assign(reply, data)
-  reply.id = uuid.v4()
+
+  // NOTE: while rolling out replies, we allow the id to be set to the answer
+  // id to make it easier to sync during the roll out
+  reply.id = id
+  if (!id) {
+    reply.id = uuid.v4()
+  }
   reply.teamId = teamId
   reply.topicId = topicId
   reply.createdBy = createdBy
@@ -52,15 +61,27 @@ export async function deleteReply({ teamId, topicId, id }) {
     TableName: table,
     Key: { id, teamId },
     ReturnValues: 'ALL_OLD',
+    ConditionExpression: 'attribute_exists(#id)',
+    ExpressionAttributeNames: {
+      '#id': 'id',
+    },
+  }
+
+  let data
+  try {
+    data = await client.delete(params).promise()
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      return null
+    }
+    throw err
   }
 
   // TODO this should all be a transaction
   const results = await Promise.all([
-    client.delete(parms).promise(),
     es.deleteReply({ teamId, id }),
     removeItem({ teamId, itemId: id }),
   ])
-  const data = results[0]
   return fromDB(Reply, data.Attributes)
 }
 
@@ -68,6 +89,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
   const params = {
     TableName: table,
     Key: { id, teamId },
+    ConditionExpression: 'attribute_exists(#id)',
     UpdateExpression:`
       SET
         #title = :title,
@@ -76,6 +98,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
         #updatedBy = :updatedBy
     `,
     ExpressionAttributeNames: {
+      '#id': 'id',
       '#title': 'title',
       '#body': 'body',
       '#changed': 'changed',
@@ -95,6 +118,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
   const removeFrom = []
   const addTo = []
   const existingTopicIds = await getTopicIdsForItem({ teamId, itemId: id })
+  debug('Existing topicIds', { existingTopicIds })
   for (const existingTopicId of existingTopicIds) {
     if (existingTopicId !== topicId) {
       removeFrom.push(existingTopicId)
@@ -107,16 +131,34 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
     addTo.push(topicId)
   }
 
-  const res = await Promise.all([
-    removeItemFromTopics({ teamId, itemId: id, topicIds: removeFrom }),
-    addItemToTopics({ teamId, itemId: id, topicIds: addTo, createdBy: updatedBy }),
-    client.update(params).promise(),
-    getTopicsWithIds({ teamId, topicIds: topicIds.concat(addTo) }),
-  ])
-  mutex.unlock()
-  const data = res[2]
-  const topics = res[3]
+  debug('Updating reply', { params })
+  let data
+  try {
+    data = await client.update(params).promise()
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      debug('Reply does not exist')
+      return null
+    }
+    throw err
+  }
+
   const reply = fromDB(Reply, data.Attributes)
+  const promises = [
+    getTopicsWithIds({ teamId, topicIds: topicIds.concat(addTo) }),
+  ]
+  if (addTo.length) {
+    promises.push(addItemToTopics({ teamId, itemId: id, topicIds: addTo, createdBy: updatedBy }))
+  }
+  if (removeFrom.length) {
+    promises.push(removeItemFromTopics({ teamId, itemId: id, topicIds: removeFrom }))
+  }
+
+  debug('Updating associated reply records', { promises: promises.length, addTo, removeFrom, topicIds })
+  const res = await Promise.all(promises)
+  debug('Associated records results', { res })
+  mutex.unlock()
+  const topics = res[0]
   await es.indexReply({ reply, topics })
   return reply
 }
@@ -126,7 +168,7 @@ export async function getRepliesForTopic({ teamId, topicId }) {
   const params = {
     RequestItems: {
       [table]: {
-        Keys: items.map(({ id }) => { teamId, id }),
+        Keys: items.map(({ id }) => ({ teamId, id })),
       },
     },
   }
