@@ -76,7 +76,7 @@ export async function getDefaultTopic(teamId) {
 export async function getTopicsWithIds({ teamId, topicIds }) {
   const params = {
     RequestItems: {
-      [table]: {
+      [topicTable]: {
         Keys: topicIds.map(topicId => { teamId, topicId }),
       },
     },
@@ -88,7 +88,7 @@ export async function getTopicsWithIds({ teamId, topicIds }) {
 
 export async function getTopic({ teamId, id }) {
   const params = {
-    TableName: table,
+    TableName: topicTable,
     Key: { teamId, id },
   }
   const data = await client.get(params).promise()
