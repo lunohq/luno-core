@@ -85,3 +85,16 @@ export async function getTopicsWithIds({ teamId, topicIds }) {
   console.log(data)
   return data
 }
+
+export async function getTopic({ teamId, id }) {
+  const params = {
+    TableName: table,
+    Key: { teamId, id },
+  }
+  const data = await client.get(params).promise()
+  let topic
+  if (data.Item) {
+    topic = fromDB(Topic, data.Item)
+  }
+  return topic
+}
