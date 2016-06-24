@@ -77,13 +77,16 @@ export async function getTopicsWithIds({ teamId, topicIds }) {
   const params = {
     RequestItems: {
       [topicTable]: {
-        Keys: topicIds.map(topicId => { teamId, topicId }),
+        Keys: topicIds.map(topicId => ({ teamId, id: topicId })),
       },
     },
   }
   const data = await client.batchGet(params).promise()
-  console.log(data)
-  return data
+  let topics = []
+  if (data.Responses && data.Responses[topicTable]) {
+    topics = data.Responses[topicTable].map(topic => fromDB(Topic, topic))
+  }
+  return topics
 }
 
 export async function getTopic({ teamId, id }) {

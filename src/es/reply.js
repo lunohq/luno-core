@@ -1,11 +1,13 @@
 import getClient, { config } from './getClient'
 
+const debug = require('debug')('core:es:reply')
+
 const type = 'reply'
 
 const client = getClient()
 
 function newTopicPrefix(topics) {
-  const names = topics.map(topic => `[${topic.name}]`)
+  const names = topics.map(topic => topic.name ? `[${topic.name}]` : '')
   return names.join(' ')
 }
 
@@ -13,6 +15,7 @@ export function indexReply({ reply: { id, title, ...body }, topics }) {
   const prefix = newTopicPrefix(topics)
   const prefixedTitle = `${prefix} ${title}`.trim()
   body.title = prefixedTitle
+  debug('indexing reply', { body, id, topics })
   return client.index({
     ...config.write,
     type,

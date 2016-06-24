@@ -25,6 +25,7 @@ export async function createReply({ teamId, topicId, createdBy, ...data }) {
   reply.id = uuid.v4()
   reply.teamId = teamId
   reply.topicId = topicId
+  reply.createdBy = createdBy
 
   const now = new Date().toISOString()
   reply.created = now
@@ -130,6 +131,9 @@ export async function getRepliesForTopic({ teamId, topicId }) {
     },
   }
   const data = client.batchGet(params).promise()
-  console.log(data)
-  return data
+  let replies = []
+  if (data.Responses && data.Responses[table]) {
+    replies = data.Responses[table].map(reply => fromDB(Reply, reply))
+  }
+  return replies
 }

@@ -2,7 +2,7 @@ import Redlock from 'redlock'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('topic-v1')
+const table = resolveTableName('topic-item-v1')
 
 export class TopicItem {}
 
@@ -12,6 +12,7 @@ function generateTopicItem({ teamId, topicId, itemId, createdBy }) {
   topicItem.topicId = topicId
   topicItem.itemId = itemId
   topicItem.createdBy = createdBy
+  topicItem.teamIdTopicId = compositeId(teamId, topicId)
 
   const now = new Date().toISOString()
   topicItem.created = now
