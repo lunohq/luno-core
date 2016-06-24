@@ -38,7 +38,7 @@ export async function createReply({ teamId, topicId, createdBy, ...data }) {
   const res = await Promise.all([
     addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
     client.put(params).promise(),
-    getTopicsWithIds([topicId]),
+    getTopicsWithIds({ teamId, topicIds: [topicId] }),
   ])
   const topics = res[2]
   // TODO this should be a transaction
@@ -110,7 +110,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
     removeItemFromTopics({ teamId, itemId: id, topicIds: removeFrom }),
     addItemToTopics({ teamId, itemId: id, topicIds: addTo, createdBy: updatedBy }),
     client.update(params).promise(),
-    getTopicsWithIds(topicIds.concat(addTo)),
+    getTopicsWithIds({ teamId, topicIds: topicIds.concat(addTo) }),
   ])
   mutex.unlock()
   const data = res[2]
