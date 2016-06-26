@@ -2,7 +2,7 @@ import Redlock from 'redlock'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
 
-const table = resolveTableName('topic-item-v1')
+export const table = resolveTableName('topic-item-v1')
 
 export class TopicItem {}
 

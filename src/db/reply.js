@@ -14,7 +14,7 @@ import * as es from '../es/reply'
 
 const debug = require('debug')('core:db:reply')
 
-const table = resolveTableName('reply-v1')
+export const table = resolveTableName('reply-v1')
 
 export class Reply {}
 
