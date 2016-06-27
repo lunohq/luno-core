@@ -37,10 +37,9 @@ function getQuery(botId, query) {
     query: {
       filtered: {
         query: {
-          common: {
+          match: {
             title: {
               query,
-              cutoff_frequency: 0.001,
               minimum_should_match: '50%',
             },
           },
