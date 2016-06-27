@@ -85,6 +85,20 @@ export async function deleteReply({ teamId, topicId, id }) {
   return fromDB(Reply, data.Attributes)
 }
 
+export async function getReply({ teamId, id }) {
+  const params = {
+    TableName: table,
+    Key: { id, teamId },
+  }
+
+  const data = await client.get(params).promise()
+  let reply
+  if (data.Item) {
+    reply = fromDB(Reply, data.Item)
+  }
+  return reply
+}
+
 export async function updateReply({ teamId, id, topicId, title, body, updatedBy }) {
   const params = {
     TableName: table,
