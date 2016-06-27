@@ -183,11 +183,11 @@ export async function getRepliesForTopic({ teamId, topicId }) {
   const params = {
     RequestItems: {
       [table]: {
-        Keys: items.map(({ id }) => ({ teamId, id })),
+        Keys: items.map(({ itemId }) => ({ teamId, id: itemId })),
       },
     },
   }
-  const data = client.batchGet(params).promise()
+  const data = await client.batchGet(params).promise()
   let replies = []
   if (data.Responses && data.Responses[table]) {
     replies = data.Responses[table].map(reply => fromDB(Reply, reply))
