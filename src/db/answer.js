@@ -7,10 +7,16 @@ const table = resolveTableName('answer-v1')
 
 export class Answer {}
 
-export async function createAnswer({ botId, ...data }) {
+export async function createAnswer({ id, botId, ...data }) {
   const answer = new Answer()
   Object.assign(answer, data)
-  answer.id = uuid.v4()
+
+  // NOTE: while rolling out replies, we allow the id to be set to the reply
+  // id as a backup.
+  answer.id = id
+  if (!id) {
+    answer.id = uuid.v4()
+  }
   answer.botId = botId
 
   const now = new Date().toISOString()
