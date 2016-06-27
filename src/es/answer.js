@@ -41,6 +41,7 @@ function getQuery(botId, query) {
             title: {
               query,
               cutoff_frequency: 0.001,
+              minimum_should_match: '50%',
             },
           },
         },
