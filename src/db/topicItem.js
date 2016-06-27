@@ -53,10 +53,12 @@ export async function getTopicIdsForItem({ teamId, itemId }) {
 export async function getItemsForTopic({ teamId, topicId }) {
   const params = {
     TableName: table,
+    IndexName: 'TeamIdTopicIdCreatedIndex',
     KeyConditionExpression: 'teamIdTopicId = :teamIdTopicId',
     ExpressionAttributeValues: {
       ':teamIdTopicId': compositeId(teamId, topicId),
     },
+    ScanIndexForward: false,
   }
   const data = await client.query(params).promise()
   return data.Items.map(item => fromDB(TopicItem, item))

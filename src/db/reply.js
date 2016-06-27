@@ -188,9 +188,12 @@ export async function getRepliesForTopic({ teamId, topicId }) {
     },
   }
   const data = await client.batchGet(params).promise()
-  let replies = []
+  let replyMap = {}
   if (data.Responses && data.Responses[table]) {
-    replies = data.Responses[table].map(reply => fromDB(Reply, reply))
+    data.Responses[table].forEach(reply => {
+      replyMap[reply.id] = fromDB(Reply, reply)
+    })
   }
+  const replies = items.map(({ itemId }) => replyMap[itemId])
   return replies
 }
