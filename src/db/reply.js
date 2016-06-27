@@ -177,8 +177,9 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
   return reply
 }
 
+// TODO need to handle pagination or just fetch all
 export async function getRepliesForTopic({ teamId, topicId }) {
-  const items = getItemsForTopic({ teamId, topicId })
+  const items = await getItemsForTopic({ teamId, topicId })
   const params = {
     RequestItems: {
       [table]: {
