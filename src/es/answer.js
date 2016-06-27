@@ -1,32 +1,38 @@
-import getClient, { config } from './getClient'
+import getClient, { config, getWriteIndices } from './getClient'
+
+const debug = require('debug')('core:es:answer')
 
 const type = 'answer'
 
-const client = getClient()
+// Create two clients to allow for longer requests while indexing
+const client = getClient({ requestTimeout: 3000 })
+const strictClient = getClient()
 
-export function indexAnswer({ id, ...body }) {
-  return client.index({
-    ...config.write,
+export async function indexAnswer({ id, ...body }) {
+  const indices = await getWriteIndices(client)
+  const actions = []
+  for (const index of indices) {
+    actions.push({ index: { _index: index, _id: id } })
+    actions.push(body)
+  }
+  return client.bulk({
     type,
-    id,
-    body,
+    body: actions,
     routing: body.botId,
   })
 }
 
 export async function deleteAnswer(botId, id) {
-  let res
-  try {
-    res = await client.delete({
-      ...config.write,
-      type,
-      id,
-      routing: botId,
-    })
-  } catch (err) {
-    if (err.status !== 404) throw err
+  const indices = await getWriteIndices(client)
+  const actions = []
+  for (const index of indices) {
+    actions.push({ delete: { _index: index, _id: id } })
   }
-  return res
+  return client.bulk({
+    type,
+    body: actions,
+    routing: botId,
+  })
 }
 
 function getQuery(botId, query) {
@@ -51,7 +57,7 @@ function getQuery(botId, query) {
 
 export function search(botId, query, options = {}) {
   const body = getQuery(botId, query)
-  return client.search({
+  return strictClient.search({
     ...config.read,
     ...options,
     type,

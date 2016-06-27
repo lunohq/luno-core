@@ -29,7 +29,12 @@ function credentials() {
   })
 }
 
-export default function() {
+export async function getWriteIndices(client) {
+  const aliases = await client.indices.getAliases({ name: indices.write })
+  return Object.keys(aliases)
+}
+
+export default function getClient({ requestTimeout = 1000 } = {}) {
   return new Client({
     apiVersion: '1.5',
     host: env.es.host,
@@ -39,6 +44,6 @@ export default function() {
       region: env.aws.region,
       credentials: credentials(),
     },
-    requestTimeout: 1000,
+    requestTimeout,
   })
 }
