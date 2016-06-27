@@ -55,6 +55,20 @@ export async function isValidName({ teamId, name }) {
   }
 }
 
+export async function getTopic({ teamId, id }) {
+  const params = {
+    TableName: topicTable,
+    Key: { id, teamId },
+  }
+
+  const data = await client.get(params).promise()
+  let topic
+  if (data.Item) {
+    topic = fromDB(Topic, data.Item)
+  }
+  return topic
+}
+
 export async function getDefaultTopic(teamId) {
   const params = {
     TableName: topicTable,
