@@ -1,43 +1,43 @@
-import getClient, { config } from './getClient'
+import { config, getWriteIndices } from './getClient'
+import { client, strictClient } from './clients'
 
 const debug = require('debug')('core:es:reply')
 
 const type = 'reply'
-
-const client = getClient()
 
 function newTopicPrefix(topics) {
   const names = topics.map(topic => topic.name ? `[${topic.name}]` : '')
   return names.join(' ')
 }
 
-export function indexReply({ reply: { id, title, ...body }, topics }) {
+export async function indexReply({ reply: { id, title, ...body }, topics }) {
   const prefix = newTopicPrefix(topics)
   const prefixedTitle = `${prefix} ${title}`.trim()
   body.title = prefixedTitle
-  debug('indexing reply', { body, id, topics })
-  return client.index({
-    ...config.write,
+  const indices = await getWriteIndices(client)
+  const actions = []
+  for (const index of indices) {
+    actions.push({ index: { _index: index, _id: id } })
+    actions.push(body)
+  }
+  return client.bulk({
     type,
-    id,
-    body,
+    body: actions,
     routing: body.teamId,
   })
 }
 
 export async function deleteReply({ teamId, id }) {
-  let res
-  try {
-    res = await client.delete({
-      ...config.write,
-      type,
-      id,
-      routing: teamId,
-    })
-  } catch (err) {
-    if (err.status !== 404) throw err
+  const indices = await getWriteIndices(client)
+  const actions = []
+  for (const index of indices) {
+    actions.push({ delete: { _index: index, _id: id } })
   }
-  return res
+  return client.bulk({
+    type,
+    body: actions,
+    routing: teamId,
+  })
 }
 
 function getQuery({ teamId, query }) {
@@ -62,7 +62,7 @@ function getQuery({ teamId, query }) {
 
 export function search({ teamId, query, options = {} }) {
   const body = getQuery({ teamId, query })
-  return client.search({
+  return strictClient.search({
     ...config.read,
     ...options,
     type,

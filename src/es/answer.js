@@ -1,12 +1,9 @@
-import getClient, { config, getWriteIndices } from './getClient'
+import { config, getWriteIndices } from './getClient'
+import { client, strictClient } from './clients'
 
 const debug = require('debug')('core:es:answer')
 
 const type = 'answer'
-
-// Create two clients to allow for longer requests while indexing
-const client = getClient({ requestTimeout: 3000 })
-const strictClient = getClient()
 
 export async function indexAnswer({ id, ...body }) {
   const indices = await getWriteIndices(client)
