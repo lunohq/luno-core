@@ -108,6 +108,8 @@ export async function deleteTopic({ teamId, id }) {
     promises.push(client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }))
   }
 
+  // TODO need to delete from ES, not sure how we're going to store the topic yet though.
+
   if (promises.length) {
     await Promise.all(promises)
   }
@@ -214,4 +216,17 @@ export async function getTopic({ teamId, id }) {
     topic = fromDB(Topic, data.Item)
   }
   return topic
+}
+
+export async function getTopics(teamId) {
+  const params = {
+    TableName: topicTable,
+    IndexName: 'TeamIdNameIndex',
+    KeyConditionExpression: 'teamId = :teamId AND attribute_not_exists(isDefault)',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  const items = await client.queryAll(params)
+  return items.map(item => fromDB(Topic, item))
 }
