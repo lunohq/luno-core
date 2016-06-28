@@ -1,5 +1,6 @@
 import { config, getWriteIndices } from './getClient'
 import { client, strictClient } from './clients'
+import env from '../config'
 
 const debug = require('debug')('core:es:reply')
 
@@ -48,7 +49,7 @@ function getQuery({ teamId, query }) {
           match: {
             title: {
               query,
-              minimum_should_match: '1<50% 2<75%',
+              minimum_should_match: env.es.reply.minimum_should_match,
             },
           },
         },

@@ -9,6 +9,7 @@ const {
     AWS_REGION,
     ES_HOST,
     ES_EXPLAIN_TIMEOUT,
+    ES_REPLY_MINIMUM_SHOULD_MATCH,
     REDIS_HOST,
     REDIS_TIMEOUTS_REACTIONS,
     SNS_TOPIC_NEW_USER,
@@ -25,6 +26,9 @@ merge(config, {
     host: ES_HOST,
     explain: {
       timeout: ES_EXPLAIN_TIMEOUT || 5000,
+    },
+    reply: {
+      minimum_should_match: ES_REPLY_MINIMUM_SHOULD_MATCH || '75%',
     },
   },
   redis: {
