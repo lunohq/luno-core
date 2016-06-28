@@ -48,6 +48,7 @@ function getQuery({ teamId, query }) {
           match: {
             title: {
               query,
+              minimum_should_match: '1<50% 2<75%',
             },
           },
         },
