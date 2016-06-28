@@ -40,7 +40,6 @@ function getQuery(botId, query) {
           match: {
             title: {
               query,
-              minimum_should_match: '75%',
             },
           },
         },
