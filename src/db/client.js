@@ -9,7 +9,7 @@ const BATCH_SIZE = 25
 
 function getNumBatches(items) {
   let numBatches = Math.floor(items.length / BATCH_SIZE)
-  if (numBatches % BATCH_SIZE) {
+  if (items.length % BATCH_SIZE) {
     numBatches += 1
   }
   return numBatches
