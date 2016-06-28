@@ -2,7 +2,7 @@ import uuid from 'node-uuid'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
-import { table as topicItemTable } from' ./topicItem'
+import { table as topicItemTable } from './topicItem'
 
 const topicTable = resolveTableName('topic-v1')
 const topicNameTable = resolveTableName('topic-name-v1')
