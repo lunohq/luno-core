@@ -1,6 +1,8 @@
 import uuid from 'node-uuid'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
+import { table as replyTable, getRepliesForTopic } from './reply'
+import { table as topicItemTable } from' ./topicItem'
 
 const topicTable = resolveTableName('topic-v1')
 const topicNameTable = resolveTableName('topic-name-v1')
@@ -84,11 +86,25 @@ export async function deleteTopic({ teamId, id }) {
     }
   }
 
-  let reply
-  if (data) {
-    reply = fromDB(Reply, data.Attributes)
+  const replies = await getRepliesForTopic({ teamId, topicId: id })
+  if (replies) {
+    const replyKeys = []
+    const topicItemKeys = []
+    replies.forEach(reply => {
+      replyKeys.push({ teamId, id: reply.id })
+      topicItemKeys.push({ teamIdTopicId: compositeId(teamId, id), itemId: reply.id })
+    })
+    await Promise.all([
+      client.batchDeleteAll({ table: replyTable, keys: replyKeys }),
+      client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }),
+    ])
   }
-  return reply
+
+  let topic
+  if (data) {
+    topic = fromDB(Topic, data.Attributes)
+  }
+  return topic
 }
 
 export async function isValidName({ teamId, name }) {

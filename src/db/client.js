@@ -5,6 +5,20 @@ import getClient from '../redis/getClient'
 
 const debug = require('debug')('core:db:client')
 
+const BATCH_SIZE = 25
+
+function getNumBatches(items) {
+  let numBatches = Math.floor(items.length / BATCH_SIZE)
+  if (numBatches % BATCH_SIZE) {
+    numBatches += 1
+  }
+  return numBatches
+}
+
+function getNextBatch(batchNum, items) {
+  return items.slice((batchNum - 1) * BATCH_SIZE, batchNum * BATCH_SIZE)
+}
+
 class Client extends AWS.DynamoDB.DocumentClient {
 
   /**
@@ -45,16 +59,12 @@ class Client extends AWS.DynamoDB.DocumentClient {
 
   async batchGetAll({ table, items, getKey }) {
     const results = []
-    const batchSize = 25
-    let numBatches = Math.floor(items.length / batchSize)
-    if (items.length % batchSize) {
-      numBatches += 1
-    }
+    const numBatches = getNumBatches(items)
     for (let i = 1; i <= numBatches; i++) {
       const params = {
         RequestItems: {
           [table]: {
-            Keys: items.slice((i - 1) * batchSize, i * batchSize).map(getKey),
+            Keys: getNextBatch(i, items).map(getKey),
           },
         },
       }
@@ -64,6 +74,18 @@ class Client extends AWS.DynamoDB.DocumentClient {
       }
     }
     return results
+  }
+
+  async batchDeleteAll({ table, keys }) {
+    let numBatches = getNumBatches(keys)
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: getNextBatch(i, keys).map(key => ({ DeleteRequest: { Key: key } })),
+        },
+      }
+      await this.batchWrite(params).promise()
+    }
   }
 
 }
