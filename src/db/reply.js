@@ -180,6 +180,10 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
 // TODO need to handle pagination or just fetch all
 export async function getRepliesForTopic({ teamId, topicId }) {
   const items = await getItemsForTopic({ teamId, topicId })
+  if (!items.length) {
+    return []
+  }
+
   const params = {
     RequestItems: {
       [table]: {
