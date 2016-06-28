@@ -177,27 +177,21 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
   return reply
 }
 
-// TODO need to handle pagination or just fetch all
 export async function getRepliesForTopic({ teamId, topicId }) {
   const items = await getItemsForTopic({ teamId, topicId })
   if (!items.length) {
     return []
   }
-
-  const params = {
-    RequestItems: {
-      [table]: {
-        Keys: items.map(({ itemId }) => ({ teamId, id: itemId })),
-      },
-    },
-  }
-  const data = await client.batchGet(params).promise()
-  let replyMap = {}
-  if (data.Responses && data.Responses[table]) {
-    data.Responses[table].forEach(reply => {
+  const replies = await client.batchGetAll({
+    table,
+    items,
+    getKey: ({ itemId }) => ({ teamId, id: itemId }),
+  })
+  const replyMap = {}
+  if (replies.length) {
+    replies.forEach(reply => {
       replyMap[reply.id] = fromDB(Reply, reply)
     })
   }
-  const replies = items.map(({ itemId }) => replyMap[itemId])
-  return replies
+  return items.map(({ itemId }) => replyMap[itemId])
 }

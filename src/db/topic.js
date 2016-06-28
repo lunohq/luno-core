@@ -84,8 +84,6 @@ export async function deleteTopic({ teamId, id }) {
     }
   }
 
-  // TODO delete topicItems and replies within the topic
-
   let reply
   if (data) {
     reply = fromDB(Reply, data.Attributes)

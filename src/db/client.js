@@ -3,6 +3,8 @@ import Redlock from 'redlock'
 import config from '../config'
 import getClient from '../redis/getClient'
 
+const debug = require('debug')('core:db:client')
+
 class Client extends AWS.DynamoDB.DocumentClient {
 
   /**
@@ -39,6 +41,29 @@ class Client extends AWS.DynamoDB.DocumentClient {
     } else {
       return items
     }
+  }
+
+  async batchGetAll({ table, items, getKey }) {
+    const results = []
+    const batchSize = 25
+    let numBatches = Math.floor(items.length / batchSize)
+    if (items.length % batchSize) {
+      numBatches += 1
+    }
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: {
+            Keys: items.slice((i - 1) * batchSize, i * batchSize).map(getKey),
+          },
+        },
+      }
+      const data = await this.batchGet(params).promise()
+      if (data.Responses && data.Responses[table]) {
+        results.push(...data.Responses[table])
+      }
+    }
+    return results
   }
 
 }
