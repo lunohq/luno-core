@@ -222,7 +222,7 @@ export async function getTopics(teamId) {
   const params = {
     TableName: topicTable,
     IndexName: 'TeamIdNameIndex',
-    KeyConditionExpression: 'teamId = :teamId AND attribute_not_exists(isDefault)',
+    KeyConditionExpression: 'teamId = :teamId',
     ExpressionAttributeValues: {
       ':teamId': teamId,
     },
