@@ -60,7 +60,37 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
     },
   }
   const data = await client.update(params).promise()
+  // TODO update any items in ES with the correct topic name
   return fromDB(Topic, data.Attributes)
+}
+
+export async function deleteTopic({ teamId, id }) {
+  let params = {
+    TableName: topicTable,
+    Key: { id, teamId },
+    ReturnValues: 'ALL_OLD',
+    ConditionExpression: 'attribute_exists(#id)',
+    ExpressionAttributeNames: {
+      '#id': 'id',
+    },
+  }
+
+  let data
+  try {
+    data = await client.delete(params).promise()
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      throw err
+    }
+  }
+
+  // TODO delete topicItems and replies within the topic
+
+  let reply
+  if (data) {
+    reply = fromDB(Reply, data.Attributes)
+  }
+  return reply
 }
 
 export async function isValidName({ teamId, name }) {
