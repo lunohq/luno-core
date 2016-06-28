@@ -81,9 +81,19 @@ export async function deleteTopic({ teamId, id }) {
   try {
     data = await client.delete(params).promise()
   } catch (err) {
-    if (err.code === 'ConditionalCheckFailedException') {
+    if (err.code !== 'ConditionalCheckFailedException') {
       throw err
     }
+  }
+
+  let topic
+  if (data) {
+    topic = fromDB(Topic, data.Attributes)
+  }
+
+  const promises = []
+  if (topic) {
+    promises.push(deleteTopic({ teamId, name: topic.name }))
   }
 
   const replies = await getRepliesForTopic({ teamId, topicId: id })
@@ -94,17 +104,34 @@ export async function deleteTopic({ teamId, id }) {
       replyKeys.push({ teamId, id: reply.id })
       topicItemKeys.push({ teamIdTopicId: compositeId(teamId, id), itemId: reply.id })
     })
-    await Promise.all([
-      client.batchDeleteAll({ table: replyTable, keys: replyKeys }),
-      client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }),
-    ])
+    promises.push(client.batchDeleteAll({ table: replyTable, keys: replyKeys }))
+    promises.push(client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }))
   }
 
-  let topic
-  if (data) {
-    topic = fromDB(Topic, data.Attributes)
+  if (promises.length) {
+    await Promise.all(promises)
   }
   return topic
+}
+
+export async function deleteTopicName({ teamId, name }) {
+  let params = {
+    TableName: topicNameTable,
+    Item: { teamId, name },
+    ConditionExpression: 'attribute_exists(#name)',
+    ExpressionAttributeNames: {
+      '#name': 'name',
+    },
+  }
+
+  let data
+  try {
+    data = await client.delete(params).promise()
+  } catch (err) {
+    if (err.code !== 'ConditionalCheckFailedException') {
+      throw err
+    }
+  }
 }
 
 export async function isValidName({ teamId, name }) {
