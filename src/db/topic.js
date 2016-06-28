@@ -34,6 +34,35 @@ export async function createTopic({ teamId, ...data }) {
   return topic
 }
 
+export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact }) {
+  const now = new Date().toISOString()
+  const params = {
+    TableName: topicTable,
+    Key: { id, teamId },
+    UpdateExpression:`
+      SET
+        #pointsOfContact = :pointsOfContact,
+        #changed = :changed,
+        #name = :name,
+        #updatedBy = :updatedBy
+    `,
+    ExpressionAttributeNames: {
+      '#pointsOfContact': 'pointsOfContact',
+      '#changed': 'changed',
+      '#name': 'name',
+      '#updatedBy': 'updatedBy',
+    },
+    ExpressionAttributeValues: {
+      ':pointsOfContact': pointsOfContact,
+      ':changed': now,
+      ':name': name,
+      ':updatedBy': updatedBy,
+    },
+  }
+  const data = await client.update(params).promise()
+  return fromDB(Topic, data.Attributes)
+}
+
 export async function isValidName({ teamId, name }) {
   const params = {
     TableName: topicNameTable,
