@@ -2,6 +2,9 @@ import client, { fromDB, resolveTableName } from './client'
 
 const table = resolveTableName('team-v1')
 
+export const STATUS_ACTIVE = 0
+export const STATUS_INACTIVE = 1
+
 export class Team {}
 
 export async function getTeam(id, options={}) {
@@ -78,6 +81,41 @@ export async function updateTeam(team) {
 
   const data = await client.update(params).promise()
   return fromDB(Team, data.Attributes)
+}
+
+export async function updateTeamStatus({ id, status }) {
+  const now = new Date().toISOString()
+  const params = {
+    TableName: table,
+    Key: { id },
+    UpdateExpression:`
+      SET
+        #status = :status,
+        #statusChanged = :statusChanged,
+        #changed = :changed
+    `,
+    ExpressionAttributeNames: {
+      '#status': status,
+      '#statusChanged': statusChanged,
+      '#changed': changed,
+    },
+    ExpressionAttributeValues: {
+      ':status': status,
+      ':statusChanged': statusChanged,
+      ':changed': now,
+    },
+    ReturnValues: 'ALL_NEW',
+  }
+
+  return await client.update(params).promise()
+}
+
+export function deactivateTeam(id) {
+  return updateTeamStatus({ id, status: STATUS_INACTIVE })
+}
+
+export function activateTeam(id) {
+  return updateTeamStatus({ id, status: STATUS_ACTIVE })
 }
 
 export async function getTeams() {
