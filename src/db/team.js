@@ -95,13 +95,13 @@ export async function updateTeamStatus({ id, status }) {
         #changed = :changed
     `,
     ExpressionAttributeNames: {
-      '#status': status,
-      '#statusChanged': statusChanged,
-      '#changed': changed,
+      '#status': 'status',
+      '#statusChanged': 'statusChanged',
+      '#changed': 'changed',
     },
     ExpressionAttributeValues: {
       ':status': status,
-      ':statusChanged': statusChanged,
+      ':statusChanged': now,
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
