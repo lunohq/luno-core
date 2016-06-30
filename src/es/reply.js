@@ -41,7 +41,7 @@ export async function deleteReply({ teamId, id }) {
   })
 }
 
-export async function updateTopicName({ teamId, topicId, topicName }) {
+export async function updateTopicName({ teamId, topicId, name }) {
   const { getRepliesForTopic } = require('../db/reply')
   const [replies, indices] = await Promise.all([
     getRepliesForTopic({ teamId, topicId }),
@@ -50,7 +50,7 @@ export async function updateTopicName({ teamId, topicId, topicName }) {
   const actions = []
   for (const reply of replies) {
     for (const index of indices)  {
-      const title = `[${topicName}] ${reply.title}`
+      const title = `[${name}] ${reply.title}`
       actions.push({ update: { _index: index, _id: reply.id } })
       actions.push({ doc: { title } })
     }

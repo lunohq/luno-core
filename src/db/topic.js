@@ -3,7 +3,7 @@ import uuid from 'node-uuid'
 import LunoError from '../LunoError'
 import client, { compositeId, fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
-import { deleteTopic as deleteTopicFromES } from '../es/reply'
+import { deleteTopic as deleteTopicFromES, updateTopicName } from '../es/reply'
 import { table as topicItemTable } from './topicItem'
 
 const topicTable = resolveTableName('topic-v1')
