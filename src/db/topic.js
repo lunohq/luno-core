@@ -114,7 +114,7 @@ export async function deleteTopic({ teamId, id }) {
   const promises = []
   if (topic) {
     promises.push(deleteTopicName({ teamId, name: topic.name }))
-    promises.push(deleteTopicFromES({ teamId, topicId }))
+    promises.push(deleteTopicFromES({ teamId, topicId: id }))
   }
 
   const replies = await getRepliesForTopic({ teamId, topicId: id })
