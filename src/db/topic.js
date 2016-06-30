@@ -136,7 +136,7 @@ export async function deleteTopic({ teamId, id }) {
 export async function deleteTopicName({ teamId, name }) {
   let params = {
     TableName: topicNameTable,
-    Item: { teamId, name },
+    Key: { teamId, name },
     ConditionExpression: 'attribute_exists(#name)',
     ExpressionAttributeNames: {
       '#name': 'name',
