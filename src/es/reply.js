@@ -41,6 +41,41 @@ export async function deleteReply({ teamId, id }) {
   })
 }
 
+export async function updateTopicName({ teamId, topicId, topicName }) {
+  const { getRepliesForTopic } = require('../db/reply')
+  const [replies, indices] = await Promise.all([
+    getRepliesForTopic({ teamId, topicId }),
+    getWriteIndices(client),
+  ])
+  const actions = []
+  for (const reply of replies) {
+    for (const index of indices)  {
+      const title = `[${topicName}] ${reply.title}`
+      actions.push({ update: { _index: index, _id: reply.id } })
+      actions.push({ doc: { title } })
+    }
+  }
+  return client.bulk({
+    type,
+    body: actions,
+    routing: teamId,
+  })
+}
+
+export async function deleteTopic({ teamId, topicId }) {
+  return client.deleteByQuery({
+    ...config.write,
+    type,
+    routing: teamId,
+    body: {
+      query: {
+        term: { topicId },
+        term: { teamId },
+      },
+    },
+  })
+}
+
 function getQuery({ teamId, query }) {
   return {
     query: {

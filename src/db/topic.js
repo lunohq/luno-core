@@ -3,6 +3,7 @@ import uuid from 'node-uuid'
 import LunoError from '../LunoError'
 import client, { compositeId, fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
+import { deleteTopic as deleteTopicFromES } from '../es/reply'
 import { table as topicItemTable } from './topicItem'
 
 const topicTable = resolveTableName('topic-v1')
@@ -77,9 +78,11 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
   }
   const data = await client.update(params).promise()
   if (name !== oldTopic.name) {
-    await deleteTopicName({ teamId, name: oldTopic.name })
+    await Promise.all([
+      deleteTopicName({ teamId, name: oldTopic.name }),
+      updateTopicName({ teamId, name, topicId: id }),
+    ])
   }
-  // TODO update any items in ES with the correct topic name
   return fromDB(Topic, data.Attributes)
 }
 
@@ -111,6 +114,7 @@ export async function deleteTopic({ teamId, id }) {
   const promises = []
   if (topic) {
     promises.push(deleteTopicName({ teamId, name: topic.name }))
+    promises.push(deleteTopicFromES({ teamId, topicId }))
   }
 
   const replies = await getRepliesForTopic({ teamId, topicId: id })
@@ -124,8 +128,6 @@ export async function deleteTopic({ teamId, id }) {
     promises.push(client.batchDeleteAll({ table: replyTable, keys: replyKeys }))
     promises.push(client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }))
   }
-
-  // TODO need to delete from ES, not sure how we're going to store the topic yet though.
 
   if (promises.length) {
     await Promise.all(promises)
