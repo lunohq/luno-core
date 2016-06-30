@@ -55,11 +55,15 @@ export async function updateTopicName({ teamId, topicId, name }) {
       actions.push({ doc: { title } })
     }
   }
-  return client.bulk({
-    type,
-    body: actions,
-    routing: teamId,
-  })
+  let resp = null
+  if (actions) {
+    resp = client.bulk({
+      type,
+      body: actions,
+      routing: teamId,
+    })
+  }
+  return resp
 }
 
 export async function deleteTopic({ teamId, topicId }) {
