@@ -44,7 +44,13 @@ export async function createTopic({ teamId, ...data }) {
 }
 
 export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact }) {
-  await validateName({ teamId, name })
+  // we can't return old and new values from dynamodb, so we have to fetch the
+  // current topic so we can delete the name if necessary
+  const results = await Promise.all([
+    getTopic({ teamId, id }),
+    validateName({ teamId, name }),
+  ])
+  const oldTopic = results[0]
   const now = new Date().toISOString()
   const params = {
     TableName: topicTable,
@@ -68,8 +74,12 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
       ':name': name,
       ':updatedBy': updatedBy,
     },
+    ReturnValues: 'ALL_NEW',
   }
   const data = await client.update(params).promise()
+  if (name !== oldTopic.name) {
+    await deleteTopicName({ teamId, name: oldTopic.name })
+  }
   // TODO update any items in ES with the correct topic name
   return fromDB(Topic, data.Attributes)
 }
