@@ -56,7 +56,7 @@ export async function updateTopicName({ teamId, topicId, name }) {
     }
   }
   let resp = null
-  if (actions) {
+  if (actions.length) {
     resp = client.bulk({
       type,
       body: actions,
