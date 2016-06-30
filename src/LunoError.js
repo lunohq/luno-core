@@ -2,7 +2,8 @@
 // to the client
 export default class LunoError extends Error {
   constructor(message, code) {
-    super()
+    super(message)
+    this.name = 'LunoError'
     this.message = message
     this.code = code
   }
