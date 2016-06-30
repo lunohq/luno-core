@@ -114,7 +114,7 @@ export async function deleteTopic({ teamId, id }) {
   }
 
   const replies = await getRepliesForTopic({ teamId, topicId: id })
-  if (replies) {
+  if (replies.length) {
     const replyKeys = []
     const topicItemKeys = []
     replies.forEach(reply => {
