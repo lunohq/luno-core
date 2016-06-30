@@ -11,14 +11,18 @@ export const DUPLICATE_TOPIC_NAME_EXCEPTION = 'DuplicateTopicNameException'
 
 export class Topic {}
 
+async function validateName({ teamId, name }) {
+  const validName = await isValidName({ teamId, name })
+  if (!validName) {
+    const error = new Error('Duplicate team name')
+    error.code = DUPLICATE_TOPIC_NAME_EXCEPTION
+    throw error
+  }
+}
+
 export async function createTopic({ teamId, ...data }) {
   if (!data.isDefault) {
-    const validName = await isValidName({ teamId, name: data.name })
-    if (!validName) {
-      const error = new Error('Duplicate team name')
-      error.code = DUPLICATE_TOPIC_NAME_EXCEPTION
-      throw error
-    }
+    await validateName({ teamId, name: data.name })
   }
 
   const topic = new Topic()
@@ -40,6 +44,7 @@ export async function createTopic({ teamId, ...data }) {
 }
 
 export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact }) {
+  await validateName({ teamId, name })
   const now = new Date().toISOString()
   const params = {
     TableName: topicTable,
