@@ -1,5 +1,6 @@
 import uuid from 'node-uuid'
 
+import LunoError from '../LunoError'
 import client, { compositeId, fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
 import { table as topicItemTable } from './topicItem'
@@ -14,9 +15,7 @@ export class Topic {}
 async function validateName({ teamId, name }) {
   const validName = await isValidName({ teamId, name })
   if (!validName) {
-    const error = new Error('Duplicate team name')
-    error.code = DUPLICATE_TOPIC_NAME_EXCEPTION
-    throw error
+    throw new LunoError('Duplicate team name', DUPLICATE_TOPIC_NAME_EXCEPTION)
   }
 }
 
