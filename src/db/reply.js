@@ -37,7 +37,7 @@ function rollbackDeleteReply({ reply, topicId }) {
 
 function rollbackUpdateReply({ previousReply, topicId }) {
   debug('Rolling back updateReply', { previousReply, topicId })
-  return updateReply({ topicId, ...previousReply })
+  return updateReply({ topicId, rollback: true, ...previousReply })
 }
 
 export async function createReply({ id, teamId, topicId, createdBy, rollback = false, ...data }) {
@@ -73,14 +73,18 @@ export async function createReply({ id, teamId, topicId, createdBy, rollback = f
       getTopicsWithIds({ teamId, topicIds: [topicId] }),
     ])
   } catch (err) {
-    await rollbackCreateReply({ id, teamId, topicId })
+    if (!rollback) {
+      await rollbackCreateReply({ id, teamId, topicId })
+    }
     throw err
   }
   const topics = res[2]
   try {
     await es.indexReply({ reply, topics })
   } catch (err) {
-    await rollbackCreateReply({ id, teamId, topicId })
+    if (!rollback) {
+      await rollbackCreateReply({ id, teamId, topicId })
+    }
     throw err
   }
   return reply
@@ -115,7 +119,9 @@ export async function deleteReply({ teamId, topicId, id, rollback = false }) {
         removeItem({ teamId, itemId: id }),
       ])
     } catch (err) {
-      await rollbackDeleteReply({ reply, topicId })
+      if (!rollback) {
+        await rollbackDeleteReply({ reply, topicId })
+      }
       throw err
     }
   }
@@ -137,7 +143,7 @@ export async function getReply({ teamId, id, options = {} }) {
   return reply
 }
 
-export async function updateReply({ teamId, id, topicId, title, body, updatedBy, changed = new Date().toISOString() }) {
+export async function updateReply({ teamId, id, topicId, title, body, updatedBy, changed = new Date().toISOString(), rollback = false }) {
   const params = {
     TableName: table,
     Key: { id, teamId },
@@ -193,8 +199,10 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       debug('Reply does not exist')
+      mutex.unlock()
       return null
     }
+    mutex.unlock()
     throw err
   }
 
@@ -213,7 +221,10 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
   try {
     res = await Promise.all(promises)
   } catch (err) {
-    await rollbackUpdateReply({ previousReply, topicId })
+    mutex.unlock()
+    if (!rollback) {
+      await rollbackUpdateReply({ previousReply, topicId })
+    }
     throw err
   }
 
@@ -221,7 +232,10 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
   try {
     await es.indexReply({ reply, topics })
   } catch (err) {
-    await rollbackUpdateReply({ previousReply, topicId })
+    mutex.unlock()
+    if (!rollback) {
+      await rollbackUpdateReply({ previousReply, topicId })
+    }
     throw err
   }
   const reply = await getReply({ teamId, id, options: { ConsistentRead: true } })
