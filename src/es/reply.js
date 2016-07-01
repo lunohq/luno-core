@@ -1,5 +1,6 @@
 import { config, getWriteIndices } from './getClient'
 import { client, strictClient } from './clients'
+import { getItemsForTopic } from '../db/topicItem'
 import env from '../config'
 
 const debug = require('debug')('core:es:reply')
@@ -42,6 +43,7 @@ export async function deleteReply({ teamId, id }) {
 }
 
 export async function updateTopicName({ teamId, topicId, name }) {
+  // avoid circular import
   const { getRepliesForTopic } = require('../db/reply')
   const [replies, indices] = await Promise.all([
     getRepliesForTopic({ teamId, topicId }),
@@ -55,7 +57,7 @@ export async function updateTopicName({ teamId, topicId, name }) {
       actions.push({ doc: { title } })
     }
   }
-  let resp = null
+  let resp
   if (actions.length) {
     resp = client.bulk({
       type,
@@ -67,17 +69,27 @@ export async function updateTopicName({ teamId, topicId, name }) {
 }
 
 export async function deleteTopic({ teamId, topicId }) {
-  return client.deleteByQuery({
-    ...config.write,
-    type,
-    routing: teamId,
-    body: {
-      query: {
-        term: { topicId },
-        term: { teamId },
-      },
-    },
-  })
+  const [items, indices] = await Promise.all([
+    getItemsForTopic({ teamId, topicId }),
+    getWriteIndices(client),
+  ])
+
+  const actions = []
+  for (const item of items) {
+    for (const index of indices) {
+      actions.push({ delete: { _index: index, _id: item.itemId } })
+    }
+  }
+
+  let resp
+  if (actions.length) {
+    resp = client.bulk({
+      type,
+      body: actions,
+      routing: teamId,
+    })
+  }
+  return resp
 }
 
 function getQuery({ teamId, query }) {
