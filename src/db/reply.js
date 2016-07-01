@@ -2,7 +2,6 @@ import uuid from 'node-uuid'
 
 import client, { lock, compositeId, fromDB, resolveTableName } from './client'
 import {
-  getTopicsForItem,
   removeItemFromTopics,
   addItemToTopics,
   getItemsForTopic,
@@ -269,4 +268,9 @@ export async function getRepliesForTopic({ teamId, topicId }) {
     })
   }
   return items.map(({ itemId }) => replyMap[itemId])
+}
+
+export async function getTopicsForReply({ teamId, id }) {
+  const topicIds = await getTopicIdsForItem({ teamId, itemId: id })
+  return getTopicsWithIds({ teamId, topicIds })
 }
