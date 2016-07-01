@@ -4,7 +4,9 @@ import LunoError from '../LunoError'
 import client, { compositeId, fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
 import { deleteTopic as deleteTopicFromES, updateTopicName } from '../es/reply'
-import { table as topicItemTable } from './topicItem'
+import { table as topicItemTable, generateTopicItem } from './topicItem'
+
+const debug = require('debug')('core:db:topic')
 
 const topicTable = resolveTableName('topic-v1')
 const topicNameTable = resolveTableName('topic-name-v1')
@@ -13,6 +15,35 @@ export const DUPLICATE_TOPIC_NAME_EXCEPTION = 'DuplicateTopicNameException'
 
 export class Topic {}
 
+async function rollbackUpdateTopic({ previousTopic }) {
+  debug('Rolling back updateTopic', { previousTopic })
+  const res = await updateTopic({ rollback: true, ...previousTopic })
+  debug('Rolled back updateTopic', res)
+  return res
+}
+
+async function rollbackDeleteTopic({ topic, replies }) {
+  debug('Rolling back deleteTopic', { topic, replies })
+  const promises = [createTopic({ ...topic })]
+  if (replies.length) {
+    const topicItems = []
+    replies.forEach(reply => {
+      const topicItem = generateTopicItem({
+        teamId: reply.teamId,
+        topicId: topic.id,
+        itemId: reply.id,
+        createdBy: reply.createdBy,
+      })
+      topicItems.push(topicItem)
+    })
+    promises.push(client.batchWriteAll({ table: replyTable, items: replies }))
+    promises.push(client.batchWriteAll({ table: topicItemTable, items: topicItems }))
+    promises.push(updateTopicName({ teamId: topic.teamId, topicId: topic.id, name: topic.name, replies }))
+  }
+  const res = await Promise.all(promises)
+  debug('Rolled back deleteTopic', res)
+}
+
 async function validateName({ teamId, name }) {
   const validName = await isValidName({ teamId, name })
   if (!validName) {
@@ -20,19 +51,21 @@ async function validateName({ teamId, name }) {
   }
 }
 
-export async function createTopic({ teamId, ...data }) {
+export async function createTopic({ id = uuid.v4(), teamId, rollback = false, ...data }) {
   if (!data.isDefault) {
     await validateName({ teamId, name: data.name })
   }
 
   const topic = new Topic()
   Object.assign(topic, data)
-  topic.id = uuid.v4()
+  topic.id = id
   topic.teamId = teamId
 
-  const now = new Date().toISOString()
-  topic.created = now
-  topic.changed = now
+  if (!rollback) {
+    const now = new Date().toISOString()
+    topic.created = now
+    topic.changed = now
+  }
 
   const params = {
     TableName: topicTable,
@@ -43,50 +76,60 @@ export async function createTopic({ teamId, ...data }) {
   return topic
 }
 
-export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact }) {
+export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact, changed = new Date().toISOString(), rollback = false }) {
   // we can't return old and new values from dynamodb, so we have to fetch the
   // current topic so we can delete the name if necessary
   const results = await Promise.all([
     getTopic({ teamId, id }),
     validateName({ teamId, name }),
   ])
-  const oldTopic = results[0]
-  const now = new Date().toISOString()
+  const previousTopic = results[0]
   const params = {
     TableName: topicTable,
     Key: { id, teamId },
     UpdateExpression:`
       SET
-        #pointsOfContact = :pointsOfContact,
-        #changed = :changed,
-        #name = :name,
-        #updatedBy = :updatedBy
+        #pointsOfContact = :pointsOfContact
+        , #changed = :changed
+        , #name = :name
+        ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
     `,
     ExpressionAttributeNames: {
       '#pointsOfContact': 'pointsOfContact',
       '#changed': 'changed',
       '#name': 'name',
-      '#updatedBy': 'updatedBy',
     },
     ExpressionAttributeValues: {
       ':pointsOfContact': pointsOfContact,
-      ':changed': now,
+      ':changed': changed,
       ':name': name,
-      ':updatedBy': updatedBy,
     },
     ReturnValues: 'ALL_NEW',
   }
+
+  if (updatedBy) {
+    params.ExpressionAttributeNames['#updatedBy'] = 'updatedBy'
+    params.ExpressionAttributeValues[':updatedBy'] = updatedBy
+  }
+
   const data = await client.update(params).promise()
-  if (name !== oldTopic.name) {
-    await Promise.all([
-      deleteTopicName({ teamId, name: oldTopic.name }),
-      updateTopicName({ teamId, name, topicId: id }),
-    ])
+  if (name !== previousTopic.name) {
+    try {
+      await Promise.all([
+        deleteTopicName({ teamId, name: previousTopic.name }),
+        updateTopicName({ teamId, name, topicId: id }),
+      ])
+    } catch (err) {
+      if (!rollback) {
+        await rollbackUpdateTopic({ previousTopic })
+      }
+      throw err
+    }
   }
   return fromDB(Topic, data.Attributes)
 }
 
-export async function deleteTopic({ teamId, id }) {
+export async function deleteTopic({ teamId, id, rollback = false }) {
   let params = {
     TableName: topicTable,
     Key: { id, teamId },
@@ -130,7 +173,14 @@ export async function deleteTopic({ teamId, id }) {
   }
 
   if (promises.length) {
-    await Promise.all(promises)
+    try {
+      await Promise.all(promises)
+    } catch (err) {
+      if (!rollback) {
+        await rollbackDeleteTopic({ topic, replies })
+      }
+      throw err
+    }
   }
   return topic
 }

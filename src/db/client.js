@@ -88,6 +88,18 @@ class Client extends AWS.DynamoDB.DocumentClient {
     }
   }
 
+  async batchWriteAll({ table, items }) {
+    let numBatches = getNumBatches(items)
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: getNextBatch(i, items).map(item => ({ PutRequest: { Item: item } })),
+        },
+      }
+      await this.batchWrite(params).promise()
+    }
+  }
+
 }
 
 /**

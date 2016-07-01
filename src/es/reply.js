@@ -42,13 +42,20 @@ export async function deleteReply({ teamId, id }) {
   })
 }
 
-export async function updateTopicName({ teamId, topicId, name }) {
+export async function updateTopicName({ teamId, topicId, name, replies }) {
   // avoid circular import
   const { getRepliesForTopic } = require('../db/reply')
-  const [replies, indices] = await Promise.all([
-    getRepliesForTopic({ teamId, topicId }),
-    getWriteIndices(client),
-  ])
+
+  const promises = [getWriteIndices(client)]
+  if (replies === undefined) {
+    promises.push(getRepliesForTopic({ teamId, topicId }))
+  }
+  const res = await Promise.all(promises)
+  const indices = res[0]
+  if (replies === undefined) {
+    replies = res[1]
+  }
+
   const actions = []
   for (const reply of replies) {
     for (const index of indices)  {
@@ -57,6 +64,7 @@ export async function updateTopicName({ teamId, topicId, name }) {
       actions.push({ doc: { title } })
     }
   }
+
   let resp
   if (actions.length) {
     resp = client.bulk({

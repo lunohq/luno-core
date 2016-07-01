@@ -6,7 +6,7 @@ export const table = resolveTableName('topic-item-v1')
 
 export class TopicItem {}
 
-function generateTopicItem({ teamId, topicId, itemId, createdBy }) {
+export function generateTopicItem({ teamId, topicId, itemId, createdBy }) {
   const topicItem = new TopicItem()
   topicItem.teamId = teamId
   topicItem.topicId = topicId
