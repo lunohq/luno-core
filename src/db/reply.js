@@ -22,7 +22,25 @@ export function lockReply({ teamId, id }) {
   return lock(`reply-mutex-${teamId}:${id}`)
 }
 
-export async function createReply({ id, teamId, topicId, createdBy, ...data }) {
+function rollbackCreateReply({ id, teamId, topicId }) {
+  debug('Rolling back createReply', { id, teamId, topicId })
+  return Promise.all([
+    removeItemFromTopics({ itemId: id, topicIds: [topicId], teamId }),
+    deleteReply({ teamId, topicId, id, rollback: true }),
+  ])
+}
+
+function rollbackDeleteReply({ reply, topicId }) {
+  debug('Rolling back deleteReply', { reply, topicId })
+  return createReply({ topicId, rollback: true, ...reply })
+}
+
+function rollbackUpdateReply({ previousReply, topicId }) {
+  debug('Rolling back updateReply', { previousReply, topicId })
+  return updateReply({ topicId, ...previousReply })
+}
+
+export async function createReply({ id, teamId, topicId, createdBy, rollback = false, ...data }) {
   const reply = new Reply()
   Object.assign(reply, data)
 
@@ -36,27 +54,39 @@ export async function createReply({ id, teamId, topicId, createdBy, ...data }) {
   reply.topicId = topicId
   reply.createdBy = createdBy
 
-  const now = new Date().toISOString()
-  reply.created = now
-  reply.changed = now
+  if (!rollback) {
+    const now = new Date().toISOString()
+    reply.created = now
+    reply.changed = now
+  }
 
   const params = {
     TableName: table,
     Item: reply,
   }
 
-  const res = await Promise.all([
-    addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
-    client.put(params).promise(),
-    getTopicsWithIds({ teamId, topicIds: [topicId] }),
-  ])
+  let res
+  try {
+    res = await Promise.all([
+      addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
+      client.put(params).promise(),
+      getTopicsWithIds({ teamId, topicIds: [topicId] }),
+    ])
+  } catch (err) {
+    await rollbackCreateReply({ id, teamId, topicId })
+    throw err
+  }
   const topics = res[2]
-  // TODO this should be a transaction
-  await es.indexReply({ reply, topics })
+  try {
+    await es.indexReply({ reply, topics })
+  } catch (err) {
+    await rollbackCreateReply({ id, teamId, topicId })
+    throw err
+  }
   return reply
 }
 
-export async function deleteReply({ teamId, topicId, id }) {
+export async function deleteReply({ teamId, topicId, id, rollback = false }) {
   let params = {
     TableName: table,
     Key: { id, teamId },
@@ -77,19 +107,27 @@ export async function deleteReply({ teamId, topicId, id }) {
     throw err
   }
 
-  // TODO this should all be a transaction
-  const results = await Promise.all([
-    es.deleteReply({ teamId, id }),
-    removeItem({ teamId, itemId: id }),
-  ])
-  return fromDB(Reply, data.Attributes)
+  const reply = fromDB(Reply, data.Attributes)
+  if (!rollback) {
+    try {
+      await Promise.all([
+        es.deleteReply({ teamId, id }),
+        removeItem({ teamId, itemId: id }),
+      ])
+    } catch (err) {
+      await rollbackDeleteReply({ reply, topicId })
+      throw err
+    }
+  }
+  return reply
 }
 
-export async function getReply({ teamId, id }) {
+export async function getReply({ teamId, id, options = {} }) {
   const params = {
     TableName: table,
     Key: { id, teamId },
   }
+  Object.assign(params, options)
 
   const data = await client.get(params).promise()
   let reply
@@ -99,32 +137,35 @@ export async function getReply({ teamId, id }) {
   return reply
 }
 
-export async function updateReply({ teamId, id, topicId, title, body, updatedBy }) {
+export async function updateReply({ teamId, id, topicId, title, body, updatedBy, changed = new Date().toISOString() }) {
   const params = {
     TableName: table,
     Key: { id, teamId },
     ConditionExpression: 'attribute_exists(#id)',
     UpdateExpression:`
       SET
-        #title = :title,
-        #body = :body,
-        #changed = :changed,
-        #updatedBy = :updatedBy
+        #title = :title
+        , #body = :body
+        , #changed = :changed
+        ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
     `,
     ExpressionAttributeNames: {
       '#id': 'id',
       '#title': 'title',
       '#body': 'body',
       '#changed': 'changed',
-      '#updatedBy': 'updatedBy',
     },
     ExpressionAttributeValues: {
       ':title': title,
       ':body': body,
-      ':changed': new Date().toISOString(),
-      ':updatedBy': updatedBy,
+      ':changed': changed,
     },
-    ReturnValues: 'ALL_NEW',
+    ReturnValues: 'ALL_OLD',
+  }
+
+  if (updatedBy) {
+    params.ExpressionAttributeNames['#updatedBy'] = 'updatedBy'
+    params.ExpressionAttributeValues[':updatedBy'] = updatedBy
   }
 
   const mutex = await lockReply({ teamId, id })
@@ -157,7 +198,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
     throw err
   }
 
-  const reply = fromDB(Reply, data.Attributes)
+  const previousReply = fromDB(Reply, data.Attributes)
   const promises = [
     getTopicsWithIds({ teamId, topicIds: topicIds.concat(addTo) }),
   ]
@@ -168,12 +209,23 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
     promises.push(removeItemFromTopics({ teamId, itemId: id, topicIds: removeFrom }))
   }
 
-  debug('Updating associated reply records', { promises: promises.length, addTo, removeFrom, topicIds })
-  const res = await Promise.all(promises)
-  debug('Associated records results', { res })
-  mutex.unlock()
+  let res
+  try {
+    res = await Promise.all(promises)
+  } catch (err) {
+    await rollbackUpdateReply({ previousReply, topicId })
+    throw err
+  }
+
   const topics = res[0]
-  await es.indexReply({ reply, topics })
+  try {
+    await es.indexReply({ reply, topics })
+  } catch (err) {
+    await rollbackUpdateReply({ previousReply, topicId })
+    throw err
+  }
+  const reply = await getReply({ teamId, id, options: { ConsistentRead: true } })
+  mutex.unlock()
   return reply
 }
 
