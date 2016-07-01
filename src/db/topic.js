@@ -1,7 +1,7 @@
 import uuid from 'node-uuid'
 
 import LunoError from '../LunoError'
-import client, { compositeId, fromDB, resolveTableName } from './client'
+import client, { compositeId, fromDB as _fromDB, resolveTableName } from './client'
 import { table as replyTable, getRepliesForTopic } from './reply'
 import { deleteTopic as deleteTopicFromES, updateTopicName } from '../es/reply'
 import { table as topicItemTable, generateTopicItem } from './topicItem'
@@ -14,6 +14,12 @@ const topicNameTable = resolveTableName('topic-name-v1')
 export const DUPLICATE_TOPIC_NAME_EXCEPTION = 'DuplicateTopicNameException'
 
 export class Topic {}
+
+function fromDB(model, item) {
+  const res = _fromDB(model, item)
+  res.name = res.displayName
+  return res
+}
 
 async function rollbackUpdateTopic({ previousTopic }) {
   debug('Rolling back updateTopic', { previousTopic })
@@ -44,22 +50,26 @@ async function rollbackDeleteTopic({ topic, replies }) {
   debug('Rolled back deleteTopic', res)
 }
 
-async function validateName({ teamId, name }) {
-  const validName = await isValidName({ teamId, name })
+async function validateName({ teamId, name, id }) {
+  const validName = await isValidName({ teamId, name, id })
   if (!validName) {
     throw new LunoError('Duplicate team name', DUPLICATE_TOPIC_NAME_EXCEPTION)
   }
 }
 
-export async function createTopic({ id = uuid.v4(), teamId, rollback = false, ...data }) {
+export async function createTopic({ id = uuid.v4(), name, teamId, rollback = false, ...data }) {
+  const displayName = name
+  name = name ? name.toLowerCase() : undefined
   if (!data.isDefault) {
-    await validateName({ teamId, name: data.name })
+    await validateName({ teamId, name, id })
   }
 
   const topic = new Topic()
   Object.assign(topic, data)
   topic.id = id
   topic.teamId = teamId
+  topic.name = name
+  topic.displayName = displayName
 
   if (!rollback) {
     const now = new Date().toISOString()
@@ -79,9 +89,11 @@ export async function createTopic({ id = uuid.v4(), teamId, rollback = false, ..
 export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact, changed = new Date().toISOString(), rollback = false }) {
   // we can't return old and new values from dynamodb, so we have to fetch the
   // current topic so we can delete the name if necessary
+  const displayName = name
+  name = name.toLowerCase()
   const results = await Promise.all([
     getTopic({ teamId, id }),
-    validateName({ teamId, name }),
+    validateName({ teamId, name, id }),
   ])
   const previousTopic = results[0]
   const params = {
@@ -92,17 +104,20 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
         #pointsOfContact = :pointsOfContact
         , #changed = :changed
         , #name = :name
+        , #displayName = :displayName
         ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
     `,
     ExpressionAttributeNames: {
       '#pointsOfContact': 'pointsOfContact',
       '#changed': 'changed',
       '#name': 'name',
+      '#displayName': 'displayName',
     },
     ExpressionAttributeValues: {
       ':pointsOfContact': pointsOfContact,
       ':changed': changed,
       ':name': name,
+      ':displayName': displayName,
     },
     ReturnValues: 'ALL_NEW',
   }
@@ -116,8 +131,8 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
   if (name !== previousTopic.name) {
     try {
       await Promise.all([
-        deleteTopicName({ teamId, name: previousTopic.name }),
-        updateTopicName({ teamId, name, topicId: id }),
+        deleteTopicName({ teamId, name: previousTopic.name.toLowerCase() }),
+        updateTopicName({ teamId, name: displayName, topicId: id }),
       ])
     } catch (err) {
       if (!rollback) {
@@ -205,13 +220,17 @@ export async function deleteTopicName({ teamId, name }) {
   }
 }
 
-export async function isValidName({ teamId, name }) {
+export async function isValidName({ teamId, name, id }) {
   const params = {
     TableName: topicNameTable,
     Item: { teamId, name },
-    ConditionExpression: 'attribute_not_exists(#name)',
+    ConditionExpression: 'attribute_not_exists(#name) OR begins_with(#topicId, :topicId)',
     ExpressionAttributeNames: {
       '#name': 'name',
+      '#topicId': 'topicId',
+    },
+    ExpressionAttributeValues: {
+      ':topicId': id,
     },
   }
 
@@ -290,7 +309,7 @@ export async function getTopic({ teamId, id }) {
 export async function getTopics(teamId) {
   const params = {
     TableName: topicTable,
-    IndexName: 'TeamIdNameIndex',
+    IndexName: 'TeamIdNameIndexV2',
     KeyConditionExpression: 'teamId = :teamId',
     ExpressionAttributeValues: {
       ':teamId': teamId,
