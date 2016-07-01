@@ -131,7 +131,7 @@ export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact
   if (name !== previousTopic.name) {
     try {
       await Promise.all([
-        deleteTopicName({ teamId, name: previousTopic.name.toLowerCase() }),
+        deleteTopicName({ teamId, name: previousTopic.name }),
         updateTopicName({ teamId, name: displayName, topicId: id }),
       ])
     } catch (err) {
@@ -203,7 +203,7 @@ export async function deleteTopic({ teamId, id, rollback = false }) {
 export async function deleteTopicName({ teamId, name }) {
   let params = {
     TableName: topicNameTable,
-    Key: { teamId, name },
+    Key: { teamId, name: name.toLowerCase() },
     ConditionExpression: 'attribute_exists(#name)',
     ExpressionAttributeNames: {
       '#name': 'name',
@@ -223,7 +223,7 @@ export async function deleteTopicName({ teamId, name }) {
 export async function isValidName({ teamId, name, id }) {
   const params = {
     TableName: topicNameTable,
-    Item: { teamId, name },
+    Item: { teamId, name: name.toLowerCase(), topicId: id },
     ConditionExpression: 'attribute_not_exists(#name) OR begins_with(#topicId, :topicId)',
     ExpressionAttributeNames: {
       '#name': 'name',
