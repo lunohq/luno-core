@@ -228,6 +228,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
     throw err
   }
 
+  const reply = await getReply({ teamId, id, options: { ConsistentRead: true } })
   const topics = res[0]
   try {
     await es.indexReply({ reply, topics })
@@ -238,7 +239,6 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
     }
     throw err
   }
-  const reply = await getReply({ teamId, id, options: { ConsistentRead: true } })
   mutex.unlock()
   return reply
 }
