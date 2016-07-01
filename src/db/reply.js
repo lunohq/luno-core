@@ -22,22 +22,28 @@ export function lockReply({ teamId, id }) {
   return lock(`reply-mutex-${teamId}:${id}`)
 }
 
-function rollbackCreateReply({ id, teamId, topicId }) {
+async function rollbackCreateReply({ id, teamId, topicId }) {
   debug('Rolling back createReply', { id, teamId, topicId })
-  return Promise.all([
+  const res = await Promise.all([
     removeItemFromTopics({ itemId: id, topicIds: [topicId], teamId }),
     deleteReply({ teamId, topicId, id, rollback: true }),
   ])
+  debug('Rolled back createReply', res)
+  return res
 }
 
-function rollbackDeleteReply({ reply, topicId }) {
+async function rollbackDeleteReply({ reply, topicId }) {
   debug('Rolling back deleteReply', { reply, topicId })
-  return createReply({ topicId, rollback: true, ...reply })
+  const res = await createReply({ topicId, rollback: true, ...reply })
+  debug('Rolled back deleteReply', res)
+  return res
 }
 
-function rollbackUpdateReply({ previousReply, topicId }) {
+async function rollbackUpdateReply({ previousReply, topicId }) {
   debug('Rolling back updateReply', { previousReply, topicId })
-  return updateReply({ topicId, rollback: true, ...previousReply })
+  const res = await updateReply({ topicId, rollback: true, ...previousReply })
+  debug('Rolled back updateReply', res)
+  return res
 }
 
 export async function createReply({ id, teamId, topicId, createdBy, rollback = false, ...data }) {
@@ -74,7 +80,7 @@ export async function createReply({ id, teamId, topicId, createdBy, rollback = f
     ])
   } catch (err) {
     if (!rollback) {
-      await rollbackCreateReply({ id, teamId, topicId })
+      await rollbackCreateReply({ id: reply.id, teamId, topicId })
     }
     throw err
   }
@@ -83,10 +89,11 @@ export async function createReply({ id, teamId, topicId, createdBy, rollback = f
     await es.indexReply({ reply, topics })
   } catch (err) {
     if (!rollback) {
-      await rollbackCreateReply({ id, teamId, topicId })
+      await rollbackCreateReply({ id: reply.id, teamId, topicId })
     }
     throw err
   }
+  debug('Created reply', { reply })
   return reply
 }
 
@@ -125,6 +132,7 @@ export async function deleteReply({ teamId, topicId, id, rollback = false }) {
       throw err
     }
   }
+  debug('Deleted reply', { reply })
   return reply
 }
 
@@ -240,6 +248,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
     throw err
   }
   mutex.unlock()
+  debug('Updated reply', { reply })
   return reply
 }
 
