@@ -83,6 +83,8 @@ export async function createTopic({ id = uuid.v4(), name, teamId, rollback = fal
   }
 
   await client.put(params).promise()
+  // TODO (cleanup) set the name back to displayName
+  topic.name = displayName
   return topic
 }
 
