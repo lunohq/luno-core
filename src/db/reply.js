@@ -279,7 +279,7 @@ export async function getReplies(teamId) {
     },
   }
   const items = await client.queryAll(params)
-  return items.map(item => fromDB(REply, item))
+  return items.map(item => fromDB(Reply, item))
 }
 
 export async function getTopicsForReply({ teamId, id }) {
