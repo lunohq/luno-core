@@ -273,7 +273,7 @@ export async function getRepliesForTopic({ teamId, topicId }) {
 export async function getReplies(teamId) {
   const params = {
     TableName: table,
-    KeyConditionExpression: 'teamId := teamId',
+    KeyConditionExpression: 'teamId = :teamId',
     ExpressionAttributeValues: {
       ':teamId': teamId,
     },
