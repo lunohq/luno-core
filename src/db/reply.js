@@ -270,6 +270,18 @@ export async function getRepliesForTopic({ teamId, topicId }) {
   return items.map(({ itemId }) => replyMap[itemId])
 }
 
+export async function getReplies(teamId) {
+  const params = {
+    TableName: table,
+    KeyConditionExpression: 'teamId := teamId',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  const items = await client.queryAll(params)
+  return items.map(item => fromDB(REply, item))
+}
+
 export async function getTopicsForReply({ teamId, id }) {
   const topicIds = await getTopicIdsForItem({ teamId, itemId: id })
   return getTopicsWithIds({ teamId, topicIds })
