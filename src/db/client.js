@@ -32,7 +32,7 @@ class Client extends AWS.DynamoDB.DocumentClient {
     items.push(...data.Items)
     const { LastEvaluatedKey } = data
     if (LastEvaluatedKey) {
-      const nextParams = Object.assign({}, params, { LastEvaluatedKey })
+      const nextParams = Object.assign({}, params, { ExclusiveStartKey: LastEvaluatedKey })
       await this.queryAll(nextParams, items)
     } else {
       return items
@@ -50,7 +50,7 @@ class Client extends AWS.DynamoDB.DocumentClient {
     items.push(...data.Items)
     const { LastEvaluatedKey } = data
     if (LastEvaluatedKey) {
-      const nextParams = Object.assign({}, params, { LastEvaluatedKey })
+      const nextParams = Object.assign({}, params, { ExclusiveStartKey: LastEvaluatedKey })
       await this.scanAll(nextParams, items)
     } else {
       return items
