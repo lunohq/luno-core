@@ -2,8 +2,8 @@ import uuid from 'node-uuid'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
 
-const threadTable = resolveTableName('thread-v1')
-const threadEventTable = resolveTableName('thread-event-v1')
+export const threadTable = resolveTableName('thread-v1')
+export const threadEventTable = resolveTableName('thread-event-v1')
 
 export const THREAD_STATUS_OPEN = 0
 export const THREAD_STATUS_CLOSED = 1
