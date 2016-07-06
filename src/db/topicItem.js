@@ -6,7 +6,7 @@ export const table = resolveTableName('topic-item-v1')
 
 export class TopicItem {}
 
-function generateTopicItem({ teamId, topicId, itemId, createdBy }) {
+export function generateTopicItem({ teamId, topicId, itemId, createdBy }) {
   const topicItem = new TopicItem()
   topicItem.teamId = teamId
   topicItem.topicId = topicId
@@ -60,8 +60,8 @@ export async function getItemsForTopic({ teamId, topicId }) {
     },
     ScanIndexForward: false,
   }
-  const data = await client.query(params).promise()
-  return data.Items.map(item => fromDB(TopicItem, item))
+  const items = await client.queryAll(params)
+  return items.map(item => fromDB(TopicItem, item))
 }
 
 export async function removeItemFromTopics({ itemId, topicIds, teamId }) {

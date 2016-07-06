@@ -3,6 +3,22 @@ import Redlock from 'redlock'
 import config from '../config'
 import getClient from '../redis/getClient'
 
+const debug = require('debug')('core:db:client')
+
+const BATCH_SIZE = 25
+
+function getNumBatches(items) {
+  let numBatches = Math.floor(items.length / BATCH_SIZE)
+  if (items.length % BATCH_SIZE) {
+    numBatches += 1
+  }
+  return numBatches
+}
+
+function getNextBatch(batchNum, items) {
+  return items.slice((batchNum - 1) * BATCH_SIZE, batchNum * BATCH_SIZE)
+}
+
 class Client extends AWS.DynamoDB.DocumentClient {
 
   /**
@@ -38,6 +54,49 @@ class Client extends AWS.DynamoDB.DocumentClient {
       await this.scanAll(nextParams, items)
     } else {
       return items
+    }
+  }
+
+  async batchGetAll({ table, items, getKey = key => key }) {
+    const results = []
+    const numBatches = getNumBatches(items)
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: {
+            Keys: getNextBatch(i, items).map(getKey),
+          },
+        },
+      }
+      const data = await this.batchGet(params).promise()
+      if (data.Responses && data.Responses[table]) {
+        results.push(...data.Responses[table])
+      }
+    }
+    return results
+  }
+
+  async batchDeleteAll({ table, keys }) {
+    let numBatches = getNumBatches(keys)
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: getNextBatch(i, keys).map(key => ({ DeleteRequest: { Key: key } })),
+        },
+      }
+      await this.batchWrite(params).promise()
+    }
+  }
+
+  async batchWriteAll({ table, items }) {
+    let numBatches = getNumBatches(items)
+    for (let i = 1; i <= numBatches; i++) {
+      const params = {
+        RequestItems: {
+          [table]: getNextBatch(i, items).map(item => ({ PutRequest: { Item: item } })),
+        },
+      }
+      await this.batchWrite(params).promise()
     }
   }
 

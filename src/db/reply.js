@@ -2,7 +2,6 @@ import uuid from 'node-uuid'
 
 import client, { lock, compositeId, fromDB, resolveTableName } from './client'
 import {
-  getTopicsForItem,
   removeItemFromTopics,
   addItemToTopics,
   getItemsForTopic,
@@ -22,7 +21,31 @@ export function lockReply({ teamId, id }) {
   return lock(`reply-mutex-${teamId}:${id}`)
 }
 
-export async function createReply({ id, teamId, topicId, createdBy, ...data }) {
+async function rollbackCreateReply({ id, teamId, topicId }) {
+  debug('Rolling back createReply', { id, teamId, topicId })
+  const res = await Promise.all([
+    removeItemFromTopics({ itemId: id, topicIds: [topicId], teamId }),
+    deleteReply({ teamId, topicId, id, rollback: true }),
+  ])
+  debug('Rolled back createReply', res)
+  return res
+}
+
+async function rollbackDeleteReply({ reply, topicId }) {
+  debug('Rolling back deleteReply', { reply, topicId })
+  const res = await createReply({ topicId, rollback: true, ...reply })
+  debug('Rolled back deleteReply', res)
+  return res
+}
+
+async function rollbackUpdateReply({ previousReply, topicId }) {
+  debug('Rolling back updateReply', { previousReply, topicId })
+  const res = await updateReply({ topicId, rollback: true, ...previousReply })
+  debug('Rolled back updateReply', res)
+  return res
+}
+
+export async function createReply({ id, teamId, topicId, createdBy, rollback = false, ...data }) {
   const reply = new Reply()
   Object.assign(reply, data)
 
@@ -36,27 +59,44 @@ export async function createReply({ id, teamId, topicId, createdBy, ...data }) {
   reply.topicId = topicId
   reply.createdBy = createdBy
 
-  const now = new Date().toISOString()
-  reply.created = now
-  reply.changed = now
+  if (!rollback) {
+    const now = new Date().toISOString()
+    reply.created = now
+    reply.changed = now
+  }
 
   const params = {
     TableName: table,
     Item: reply,
   }
 
-  const res = await Promise.all([
-    addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
-    client.put(params).promise(),
-    getTopicsWithIds({ teamId, topicIds: [topicId] }),
-  ])
+  let res
+  try {
+    res = await Promise.all([
+      addItemToTopics({ teamId, createdBy, itemId: reply.id, topicIds: [topicId] }),
+      client.put(params).promise(),
+      getTopicsWithIds({ teamId, topicIds: [topicId] }),
+    ])
+  } catch (err) {
+    if (!rollback) {
+      await rollbackCreateReply({ id: reply.id, teamId, topicId })
+    }
+    throw err
+  }
   const topics = res[2]
-  // TODO this should be a transaction
-  await es.indexReply({ reply, topics })
+  try {
+    await es.indexReply({ reply, topics })
+  } catch (err) {
+    if (!rollback) {
+      await rollbackCreateReply({ id: reply.id, teamId, topicId })
+    }
+    throw err
+  }
+  debug('Created reply', { reply })
   return reply
 }
 
-export async function deleteReply({ teamId, topicId, id }) {
+export async function deleteReply({ teamId, topicId, id, rollback = false }) {
   let params = {
     TableName: table,
     Key: { id, teamId },
@@ -77,19 +117,30 @@ export async function deleteReply({ teamId, topicId, id }) {
     throw err
   }
 
-  // TODO this should all be a transaction
-  const results = await Promise.all([
-    es.deleteReply({ teamId, id }),
-    removeItem({ teamId, itemId: id }),
-  ])
-  return fromDB(Reply, data.Attributes)
+  const reply = fromDB(Reply, data.Attributes)
+  if (!rollback) {
+    try {
+      await Promise.all([
+        es.deleteReply({ teamId, id }),
+        removeItem({ teamId, itemId: id }),
+      ])
+    } catch (err) {
+      if (!rollback) {
+        await rollbackDeleteReply({ reply, topicId })
+      }
+      throw err
+    }
+  }
+  debug('Deleted reply', { reply })
+  return reply
 }
 
-export async function getReply({ teamId, id }) {
+export async function getReply({ teamId, id, options = {} }) {
   const params = {
     TableName: table,
     Key: { id, teamId },
   }
+  Object.assign(params, options)
 
   const data = await client.get(params).promise()
   let reply
@@ -99,32 +150,35 @@ export async function getReply({ teamId, id }) {
   return reply
 }
 
-export async function updateReply({ teamId, id, topicId, title, body, updatedBy }) {
+export async function updateReply({ teamId, id, topicId, title, body, updatedBy, changed = new Date().toISOString(), rollback = false }) {
   const params = {
     TableName: table,
     Key: { id, teamId },
     ConditionExpression: 'attribute_exists(#id)',
     UpdateExpression:`
       SET
-        #title = :title,
-        #body = :body,
-        #changed = :changed,
-        #updatedBy = :updatedBy
+        #title = :title
+        , #body = :body
+        , #changed = :changed
+        ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
     `,
     ExpressionAttributeNames: {
       '#id': 'id',
       '#title': 'title',
       '#body': 'body',
       '#changed': 'changed',
-      '#updatedBy': 'updatedBy',
     },
     ExpressionAttributeValues: {
       ':title': title,
       ':body': body,
-      ':changed': new Date().toISOString(),
-      ':updatedBy': updatedBy,
+      ':changed': changed,
     },
-    ReturnValues: 'ALL_NEW',
+    ReturnValues: 'ALL_OLD',
+  }
+
+  if (updatedBy) {
+    params.ExpressionAttributeNames['#updatedBy'] = 'updatedBy'
+    params.ExpressionAttributeValues[':updatedBy'] = updatedBy
   }
 
   const mutex = await lockReply({ teamId, id })
@@ -152,12 +206,14 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       debug('Reply does not exist')
+      mutex.unlock()
       return null
     }
+    mutex.unlock()
     throw err
   }
 
-  const reply = fromDB(Reply, data.Attributes)
+  const previousReply = fromDB(Reply, data.Attributes)
   const promises = [
     getTopicsWithIds({ teamId, topicIds: topicIds.concat(addTo) }),
   ]
@@ -168,36 +224,65 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy 
     promises.push(removeItemFromTopics({ teamId, itemId: id, topicIds: removeFrom }))
   }
 
-  debug('Updating associated reply records', { promises: promises.length, addTo, removeFrom, topicIds })
-  const res = await Promise.all(promises)
-  debug('Associated records results', { res })
-  mutex.unlock()
+  let res
+  try {
+    res = await Promise.all(promises)
+  } catch (err) {
+    mutex.unlock()
+    if (!rollback) {
+      await rollbackUpdateReply({ previousReply, topicId })
+    }
+    throw err
+  }
+
+  const reply = await getReply({ teamId, id, options: { ConsistentRead: true } })
   const topics = res[0]
-  await es.indexReply({ reply, topics })
+  try {
+    await es.indexReply({ reply, topics })
+  } catch (err) {
+    mutex.unlock()
+    if (!rollback) {
+      await rollbackUpdateReply({ previousReply, topicId })
+    }
+    throw err
+  }
+  mutex.unlock()
+  debug('Updated reply', { reply })
   return reply
 }
 
-// TODO need to handle pagination or just fetch all
 export async function getRepliesForTopic({ teamId, topicId }) {
   const items = await getItemsForTopic({ teamId, topicId })
   if (!items.length) {
     return []
   }
-
-  const params = {
-    RequestItems: {
-      [table]: {
-        Keys: items.map(({ itemId }) => ({ teamId, id: itemId })),
-      },
-    },
-  }
-  const data = await client.batchGet(params).promise()
-  let replyMap = {}
-  if (data.Responses && data.Responses[table]) {
-    data.Responses[table].forEach(reply => {
+  const replies = await client.batchGetAll({
+    table,
+    items,
+    getKey: ({ itemId }) => ({ teamId, id: itemId }),
+  })
+  const replyMap = {}
+  if (replies.length) {
+    replies.forEach(reply => {
       replyMap[reply.id] = fromDB(Reply, reply)
     })
   }
-  const replies = items.map(({ itemId }) => replyMap[itemId])
-  return replies
+  return items.map(({ itemId }) => replyMap[itemId])
+}
+
+export async function getReplies(teamId) {
+  const params = {
+    TableName: table,
+    KeyConditionExpression: 'teamId = :teamId',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  const items = await client.queryAll(params)
+  return items.map(item => fromDB(Reply, item))
+}
+
+export async function getTopicsForReply({ teamId, id }) {
+  const topicIds = await getTopicIdsForItem({ teamId, itemId: id })
+  return getTopicsWithIds({ teamId, topicIds })
 }

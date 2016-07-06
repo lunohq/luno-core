@@ -5,6 +5,7 @@ import * as config from './config'
 import events from './events'
 import * as redis from './redis'
 import * as converse from './converse'
+import LunoError from './LunoError'
 
 export {
   db,
@@ -14,6 +15,7 @@ export {
   events,
   redis,
   converse,
+  LunoError,
 }
 
 export default {
@@ -24,4 +26,5 @@ export default {
   events,
   redis,
   converse,
+  LunoError,
 }

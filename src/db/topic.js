@@ -1,6 +1,12 @@
 import uuid from 'node-uuid'
 
-import client, { compositeId, fromDB, resolveTableName } from './client'
+import LunoError from '../LunoError'
+import client, { compositeId, fromDB as _fromDB, resolveTableName } from './client'
+import { table as replyTable, getRepliesForTopic } from './reply'
+import { deleteTopic as deleteTopicFromES, updateTopicName } from '../es/reply'
+import { table as topicItemTable, generateTopicItem } from './topicItem'
+
+const debug = require('debug')('core:db:topic')
 
 const topicTable = resolveTableName('topic-v1')
 const topicNameTable = resolveTableName('topic-name-v1')
@@ -9,21 +15,67 @@ export const DUPLICATE_TOPIC_NAME_EXCEPTION = 'DuplicateTopicNameException'
 
 export class Topic {}
 
-export async function createTopic({ teamId, ...data }) {
-  if (!data.isDefault && !isValidName({ teamId, name: data.name })) {
-    const error = new Error('Duplicate team name')
-    error.code = DUPLICATE_TOPIC_NAME_EXCEPTION
-    throw error
+function fromDB(model, item) {
+  const res = _fromDB(model, item)
+  res.name = res.displayName
+  return res
+}
+
+async function rollbackUpdateTopic({ previousTopic }) {
+  debug('Rolling back updateTopic', { previousTopic })
+  const res = await updateTopic({ rollback: true, ...previousTopic })
+  debug('Rolled back updateTopic', res)
+  return res
+}
+
+async function rollbackDeleteTopic({ topic, replies }) {
+  debug('Rolling back deleteTopic', { topic, replies })
+  const promises = [createTopic({ ...topic })]
+  if (replies.length) {
+    const topicItems = []
+    replies.forEach(reply => {
+      const topicItem = generateTopicItem({
+        teamId: reply.teamId,
+        topicId: topic.id,
+        itemId: reply.id,
+        createdBy: reply.createdBy,
+      })
+      topicItems.push(topicItem)
+    })
+    promises.push(client.batchWriteAll({ table: replyTable, items: replies }))
+    promises.push(client.batchWriteAll({ table: topicItemTable, items: topicItems }))
+    promises.push(updateTopicName({ teamId: topic.teamId, topicId: topic.id, name: topic.name, replies }))
+  }
+  const res = await Promise.all(promises)
+  debug('Rolled back deleteTopic', res)
+}
+
+async function validateName({ teamId, name, id }) {
+  const validName = await isValidName({ teamId, name, id })
+  if (!validName) {
+    throw new LunoError('Duplicate team name', DUPLICATE_TOPIC_NAME_EXCEPTION)
+  }
+}
+
+export async function createTopic({ id = uuid.v4(), name, teamId, rollback = false, ...data }) {
+  const displayName = name
+  name = name ? name.toLowerCase() : undefined
+  if (!data.isDefault) {
+    await validateName({ teamId, name, id })
   }
 
   const topic = new Topic()
   Object.assign(topic, data)
-  topic.id = uuid.v4()
+  topic.id = id
   topic.teamId = teamId
+  topic.name = name
+  topic.displayName = displayName
 
-  const now = new Date().toISOString()
-  topic.created = now
-  topic.changed = now
+  if (!rollback) {
+    const now = new Date().toISOString()
+    topic.created = now
+    topic.changed = now
+  }
 
   const params = {
     TableName: topicTable,
@@ -31,28 +83,168 @@ export async function createTopic({ teamId, ...data }) {
   }
 
   await client.put(params).promise()
+  // TODO (cleanup) set the name back to displayName
+  topic.name = displayName
   return topic
 }
 
-export async function isValidName({ teamId, name }) {
+export async function updateTopic({ id, teamId, name, updatedBy, pointsOfContact, changed = new Date().toISOString(), rollback = false }) {
+  // we can't return old and new values from dynamodb, so we have to fetch the
+  // current topic so we can delete the name if necessary
+  const displayName = name
+  name = name.toLowerCase()
+  const results = await Promise.all([
+    getTopic({ teamId, id }),
+    validateName({ teamId, name, id }),
+  ])
+  const previousTopic = results[0]
   const params = {
+    TableName: topicTable,
+    Key: { id, teamId },
+    UpdateExpression:`
+      SET
+        #pointsOfContact = :pointsOfContact
+        , #changed = :changed
+        , #name = :name
+        , #displayName = :displayName
+        ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
+    `,
+    ExpressionAttributeNames: {
+      '#pointsOfContact': 'pointsOfContact',
+      '#changed': 'changed',
+      '#name': 'name',
+      '#displayName': 'displayName',
+    },
+    ExpressionAttributeValues: {
+      ':pointsOfContact': pointsOfContact,
+      ':changed': changed,
+      ':name': name,
+      ':displayName': displayName,
+    },
+    ReturnValues: 'ALL_NEW',
+  }
+
+  if (updatedBy) {
+    params.ExpressionAttributeNames['#updatedBy'] = 'updatedBy'
+    params.ExpressionAttributeValues[':updatedBy'] = updatedBy
+  }
+
+  const data = await client.update(params).promise()
+  if (name !== previousTopic.name) {
+    try {
+      await Promise.all([
+        deleteTopicName({ teamId, name: previousTopic.name }),
+        updateTopicName({ teamId, name: displayName, topicId: id }),
+      ])
+    } catch (err) {
+      if (!rollback) {
+        await rollbackUpdateTopic({ previousTopic })
+      }
+      throw err
+    }
+  }
+  return fromDB(Topic, data.Attributes)
+}
+
+export async function deleteTopic({ teamId, id, rollback = false }) {
+  let params = {
+    TableName: topicTable,
+    Key: { id, teamId },
+    ReturnValues: 'ALL_OLD',
+    ConditionExpression: 'attribute_exists(#id)',
+    ExpressionAttributeNames: {
+      '#id': 'id',
+    },
+  }
+
+  let data
+  try {
+    data = await client.delete(params).promise()
+  } catch (err) {
+    if (err.code !== 'ConditionalCheckFailedException') {
+      throw err
+    }
+  }
+
+  let topic
+  if (data) {
+    topic = fromDB(Topic, data.Attributes)
+  }
+
+  const promises = []
+  if (topic) {
+    promises.push(deleteTopicName({ teamId, name: topic.name }))
+    promises.push(deleteTopicFromES({ teamId, topicId: id }))
+  }
+
+  const replies = await getRepliesForTopic({ teamId, topicId: id })
+  if (replies.length) {
+    const replyKeys = []
+    const topicItemKeys = []
+    replies.forEach(reply => {
+      replyKeys.push({ teamId, id: reply.id })
+      topicItemKeys.push({ teamIdTopicId: compositeId(teamId, id), itemId: reply.id })
+    })
+    promises.push(client.batchDeleteAll({ table: replyTable, keys: replyKeys }))
+    promises.push(client.batchDeleteAll({ table: topicItemTable, keys: topicItemKeys }))
+  }
+
+  if (promises.length) {
+    try {
+      await Promise.all(promises)
+    } catch (err) {
+      if (!rollback) {
+        await rollbackDeleteTopic({ topic, replies })
+      }
+      throw err
+    }
+  }
+  return topic
+}
+
+export async function deleteTopicName({ teamId, name }) {
+  let params = {
     TableName: topicNameTable,
-    Item: { teamId, name },
-    ConditionExpression: 'attribute_not_exists(#name)',
+    Key: { teamId, name: name.toLowerCase() },
+    ConditionExpression: 'attribute_exists(#name)',
     ExpressionAttributeNames: {
       '#name': 'name',
     },
   }
 
+  let data
   try {
-    const resp = await client.put(params).promise()
-    return resp.statusCode === 200
+    data = await client.delete(params).promise()
+  } catch (err) {
+    if (err.code !== 'ConditionalCheckFailedException') {
+      throw err
+    }
+  }
+}
+
+export async function isValidName({ teamId, name, id }) {
+  const params = {
+    TableName: topicNameTable,
+    Item: { teamId, name: name.toLowerCase(), topicId: id },
+    ConditionExpression: 'attribute_not_exists(#name) OR begins_with(#topicId, :topicId)',
+    ExpressionAttributeNames: {
+      '#name': 'name',
+      '#topicId': 'topicId',
+    },
+    ExpressionAttributeValues: {
+      ':topicId': id,
+    },
+  }
+
+  try {
+    await client.put(params).promise()
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       return false
     }
     throw err
   }
+  return true
 }
 
 export async function getTopic({ teamId, id }) {
@@ -114,4 +306,17 @@ export async function getTopic({ teamId, id }) {
     topic = fromDB(Topic, data.Item)
   }
   return topic
+}
+
+export async function getTopics(teamId) {
+  const params = {
+    TableName: topicTable,
+    IndexName: 'TeamIdNameIndexV2',
+    KeyConditionExpression: 'teamId = :teamId',
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  const items = await client.queryAll(params)
+  return items.map(item => fromDB(Topic, item))
 }
