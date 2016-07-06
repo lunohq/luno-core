@@ -57,7 +57,7 @@ class Client extends AWS.DynamoDB.DocumentClient {
     }
   }
 
-  async batchGetAll({ table, items, getKey }) {
+  async batchGetAll({ table, items, getKey = key => key }) {
     const results = []
     const numBatches = getNumBatches(items)
     for (let i = 1; i <= numBatches; i++) {
