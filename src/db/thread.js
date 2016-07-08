@@ -317,3 +317,20 @@ export async function createThreadLog(thread) {
   await client.put(params).promise()
   return log
 }
+
+export async function getThreadLogs(teamId) {
+  const params = {
+    TableName: threadLogTable,
+    ScanIndexForward: false,
+    KeyConditionExpression: '#teamId = :teamId',
+    ExpressionAttributeNames: {
+      '#teamId': 'teamId',
+    },
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  // TODO support pagination
+  const data = await client.query(params).promise()
+  return data.Items.map(item => fromDB(ThreadLog, item))
+}
