@@ -287,8 +287,6 @@ export async function createThreadLog(thread) {
   const events = thread.events ? thread.events : []
   log.length = events.length
 
-  let escalated = false
-  let feedback = 0
   let message
   for (const event of events) {
     switch (event.type) {
@@ -301,14 +299,6 @@ export async function createThreadLog(thread) {
         }
         break
       }
-      case EVENT_ESCALATION_FLOW: {
-        escalated = true
-        break
-      }
-      case EVENT_FEEDBACK: {
-        feedback = event.positive ? THREAD_LOG_POSITIVE_FEEDBACK : THREAD_LOG_NEGATIVE_FEEDBACK
-        break
-      }
       default:
     }
   }
@@ -317,8 +307,6 @@ export async function createThreadLog(thread) {
     throw new Error('ThreadLog must contain a message')
   }
 
-  log.escalated = escalated
-  log.feedback = feedback
   log.message = message
 
   const params = {
