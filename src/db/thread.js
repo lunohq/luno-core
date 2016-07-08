@@ -254,13 +254,13 @@ export async function commitThread({ thread, close }) {
   const promises = []
   if (closePromise) {
     promises.push(closePromise)
-    // TODO remove teamId check once we have backfilled teamId
-    if (thread.model.teamId) {
-      promises.push(createThreadLog(thread))
-    }
   }
   if (commit) {
     promises.push(client.batchWrite(params).promise())
+  }
+  // TODO remove teamId check once we have backfilled teamId
+  if (thread.model.teamId) {
+    promises.push(createThreadLog(thread))
   }
 
   const results = await Promise.all(promises)
@@ -282,6 +282,7 @@ export async function createThreadLog(thread) {
   log.channelId = model.channelId
   log.created = model.created
   log.teamId = model.teamId
+  log.status = model.status
 
   const events = thread.events ? thread.events : []
   log.length = events.length
