@@ -40,7 +40,7 @@ function validate(required) {
   }
 }
 
-export async function createThread({ botId, channelId, userId, ...data }) {
+export async function createThread({ botId, channelId, userId, teamId, ...data }) {
   validate({ botId, channelId, userId })
 
   const thread = new Thread()
@@ -50,6 +50,7 @@ export async function createThread({ botId, channelId, userId, ...data }) {
   thread.botId = botId
   thread.channelId = channelId
   thread.userId = userId
+  thread.teamId = teamId
 
   const now = new Date().toISOString()
   thread.created = now
@@ -66,7 +67,7 @@ export async function createThread({ botId, channelId, userId, ...data }) {
   return thread
 }
 
-function generateEvent({ offset, threadId, botId, channelId, messageId, userId, ...data }) {
+function generateEvent({ offset, threadId, botId, channelId, messageId, userId, teamId, ...data }) {
   validate({ threadId, botId, channelId, userId })
   const event = new ThreadEvent()
   Object.assign(event, data)
@@ -75,6 +76,7 @@ function generateEvent({ offset, threadId, botId, channelId, messageId, userId, 
   event.botId = botId
   event.channelId = channelId
   event.userId = userId
+  event.teamId = teamId
   if (messageId) {
     event.botIdChannelIdMessageId = compositeId(botId, channelId, messageId)
     event.messageId = messageId
