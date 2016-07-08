@@ -334,3 +334,16 @@ export async function getThreadLogs(teamId) {
   const data = await client.query(params).promise()
   return data.Items.map(item => fromDB(ThreadLog, item))
 }
+
+export async function getThreadLog({ teamId, threadId }) {
+  const params = {
+    TableName: threadLogTable,
+    Key: { teamId, threadId },
+  }
+  const data = await client.get(params).promise()
+  let log
+  if (data.Item) {
+    log = fromDB(ThreadLog, data.Item)
+  }
+  return log
+}
