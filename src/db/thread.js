@@ -2,8 +2,11 @@ import uuid from 'node-uuid'
 
 import client, { compositeId, fromDB, resolveTableName } from './client'
 
+const debug = require('debug')('core:db:thread')
+
 export const threadTable = resolveTableName('thread-v1')
 export const threadEventTable = resolveTableName('thread-event-v1')
+export const threadLogTable = resolveTableName('thread-log-v1')
 
 export const THREAD_STATUS_OPEN = 0
 export const THREAD_STATUS_CLOSED = 1
@@ -21,6 +24,10 @@ export const EVENT_NO_RESULTS = 10
 export const EVENT_CLARIFICATION = 11
 export const EVENT_ESCALATION_FLOW = 12
 
+export const THREAD_LOG_NO_FEEDBACK = 0
+export const THREAD_LOG_POSITIVE_FEEDBACK = 1
+export const THREAD_LOG_NEGATIVE_FEEDBACK = 2
+
 export const FLOW_EVENTS = [
   EVENT_GREETING_FLOW,
   EVENT_HELP_FLOW,
@@ -31,6 +38,7 @@ export const FLOW_EVENTS = [
 
 export class Thread {}
 export class ThreadEvent {}
+export class ThreadLog {}
 
 function validate(required) {
   for (const key in required) {
@@ -246,6 +254,10 @@ export async function commitThread({ thread, close }) {
   const promises = []
   if (closePromise) {
     promises.push(closePromise)
+    // TODO remove teamId check once we have backfilled teamId
+    if (thread.model.teamId) {
+      promises.push(createThreadLog(thread))
+    }
   }
   if (commit) {
     promises.push(client.batchWrite(params).promise())
@@ -260,4 +272,60 @@ export async function commitThread({ thread, close }) {
     thread.events = events
   }
   return results
+}
+
+export async function createThreadLog(thread) {
+  const { model } = thread
+  const log = new ThreadLog()
+  log.userId = model.userId
+  log.threadId = model.id
+  log.channelId = model.channelId
+  log.created = model.created
+  log.teamId = model.teamId
+  log.createdThreadId = compositeId(model.created, model.id)
+
+  const events = thread.events ? thread.events : []
+  log.length = events.length
+
+  let escalated = false
+  let feedback = 0
+  let message
+  for (const event of events) {
+    switch (event.type) {
+      case EVENT_MESSAGE_RECEIVED: {
+        if (!message && event.message) {
+          message = {
+            threadEventId: event.id,
+            message: event.message,
+          }
+        }
+        break
+      }
+      case EVENT_ESCALATION_FLOW: {
+        escalated = true
+        break
+      }
+      case EVENT_FEEDBACK: {
+        feedback = event.positive ? THREAD_LOG_POSITIVE_FEEDBACK : THREAD_LOG_NEGATIVE_FEEDBACK
+        break
+      }
+      default:
+    }
+  }
+
+  if (!message) {
+    throw new Error('ThreadLog must contain a message')
+  }
+
+  log.escalated = escalated
+  log.feedback = feedback
+  log.message = message
+
+  const params = {
+    TableName: threadLogTable,
+    Item: log,
+  }
+  debug('Creating thread log', params)
+  await client.put(params).promise()
+  return log
 }
