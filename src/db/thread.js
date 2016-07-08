@@ -254,6 +254,9 @@ export async function commitThread({ thread, close }) {
   const promises = []
   if (closePromise) {
     promises.push(closePromise)
+    // if we're closing the thread, set the status on the model so we can
+    // create the thread log in parallel
+    thread.model.status = THREAD_STATUS_CLOSED
   }
   if (commit) {
     promises.push(client.batchWrite(params).promise())
