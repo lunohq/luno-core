@@ -282,7 +282,6 @@ export async function createThreadLog(thread) {
   log.channelId = model.channelId
   log.created = model.created
   log.teamId = model.teamId
-  log.createdThreadId = compositeId(model.created, model.id)
 
   const events = thread.events ? thread.events : []
   log.length = events.length
@@ -321,6 +320,7 @@ export async function createThreadLog(thread) {
 export async function getThreadLogs(teamId) {
   const params = {
     TableName: threadLogTable,
+    IndexName: 'TeamIdCreated',
     ScanIndexForward: false,
     KeyConditionExpression: '#teamId = :teamId',
     ExpressionAttributeNames: {
