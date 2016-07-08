@@ -217,11 +217,12 @@ export async function commitThread({ thread, close }) {
     RequestItems: {},
   }
 
-  const generatedEvents = []
+  const events = []
   let commit = false
   for (const index in thread.events) {
     const event = thread.events[index]
     if (event.id) {
+      events.push(event)
       continue
     }
 
@@ -231,7 +232,7 @@ export async function commitThread({ thread, close }) {
 
     commit = true
     const generated = generateEvent({ offset: index, ...event })
-    generatedEvents.push(generated)
+    events.push(generated)
     params.RequestItems[threadEventTable].push({ PutRequest: { Item: generated } })
   }
 
@@ -253,8 +254,8 @@ export async function commitThread({ thread, close }) {
     thread.model = results[0]
   }
 
-  if (generatedEvents.length) {
-    thread.events = generatedEvents
+  if (events.length) {
+    thread.events = events
   }
   return results
 }
