@@ -40,7 +40,7 @@ function validate(required) {
   }
 }
 
-export async function createThread({ botId, channelId, userId, teamId, ...data }) {
+export async function createThread({ botId, channelId, userId, teamId, open, ...data }) {
   validate({ botId, channelId, userId })
 
   const thread = new Thread()
