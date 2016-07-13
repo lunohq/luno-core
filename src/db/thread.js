@@ -341,7 +341,6 @@ export async function getThreadLogs({ teamId, startKey, limit }) {
     params.Limit = limit
   }
   const data = await client.query(params).promise()
-  debug('LAST EVAL', data.LastEvaluatedKey)
   return data.Items.map(item => fromDB(ThreadLog, item))
 }
 
