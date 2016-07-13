@@ -321,7 +321,7 @@ export async function createThreadLog(thread) {
   return log
 }
 
-export async function getThreadLogs(teamId) {
+export async function getThreadLogs({ teamId, startKey, limit }) {
   const params = {
     TableName: threadLogTable,
     IndexName: 'TeamIdCreated',
@@ -334,8 +334,14 @@ export async function getThreadLogs(teamId) {
       ':teamId': teamId,
     },
   }
-  // TODO support pagination
+  if (startKey) {
+    params.ExclusiveStartKey = startKey
+  }
+  if (limit) {
+    params.Limit = limit
+  }
   const data = await client.query(params).promise()
+  debug('LAST EVAL', data.LastEvaluatedKey)
   return data.Items.map(item => fromDB(ThreadLog, item))
 }
 
@@ -350,4 +356,30 @@ export async function getThreadLog({ teamId, threadId }) {
     log = fromDB(ThreadLog, data.Item)
   }
   return log
+}
+
+export async function getThreadLogPaginationBounds(teamId) {
+  const params = {
+    TableName: threadLogTable,
+    IndexName: 'TeamIdCreated',
+    KeyConditionExpression: '#teamId = :teamId',
+    ExpressionAttributeNames: {
+      '#teamId': 'teamId',
+    },
+    ExpressionAttributeValues: {
+      ':teamId': teamId,
+    },
+  }
+  const promises = [
+    client.query({ ...params, ScanIndexForward: false, Limit: 1 }).promise(),
+    client.query({ ...params, ScanIndexForward: true, Limit: 1 }).promise(),
+  ]
+  let [first, last] = await Promise.all(promises)
+  if (first && first.Items && first.Items.length) {
+    first = fromDB(ThreadLog, first.Items[0])
+  }
+  if (last && last.Items && last.Items.length) {
+    last = fromDB(ThreadLog, last.Items[0])
+  }
+  return { first, last }
 }
