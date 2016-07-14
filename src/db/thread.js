@@ -23,6 +23,7 @@ export const EVENT_MULTIPLE_RESULTS = 9
 export const EVENT_NO_RESULTS = 10
 export const EVENT_CLARIFICATION = 11
 export const EVENT_ESCALATION_FLOW = 12
+export const EVENT_ESCALATED = 13
 
 export const THREAD_LOG_NO_FEEDBACK = 0
 export const THREAD_LOG_POSITIVE_FEEDBACK = 1
