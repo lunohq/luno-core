@@ -154,6 +154,10 @@ export async function getUsers(teamId) {
   return executeScan(params)
 }
 
+export async function getUsersWithIds(ids) {
+  return client.batchGetAll({ table, items: ids, getKey: id => ({ id }) })
+}
+
 export async function getStaff(teamId) {
   const params = {
     TableName: table,
