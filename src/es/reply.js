@@ -19,9 +19,11 @@ function newKeywordsSuffix(keywords) {
 
 export async function indexReply({ reply: { id, title: rawTitle, keywords, ...body }, topics }) {
   let title = rawTitle
+  let displayTitle = rawTitle
   if (topics) {
     const prefix = newTopicPrefix(topics)
     title = `${prefix} ${title}`.trim()
+    displayTitle = title
   }
 
   if (keywords) {
@@ -30,6 +32,7 @@ export async function indexReply({ reply: { id, title: rawTitle, keywords, ...bo
   }
 
   body.title = title
+  body.displayTitle = displayTitle
   const indices = await getWriteIndices(client)
   const actions = []
   for (const index of indices) {

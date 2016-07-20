@@ -151,7 +151,7 @@ export async function getReply({ teamId, id, options = {} }) {
 }
 
 export async function updateReply({ teamId, id, topicId, title, body, keywords: rawKeywords, updatedBy, changed = new Date().toISOString(), rollback = false }) {
-  const keywords = rawKeywords.trim()
+  const keywords = rawKeywords && rawKeywords.trim()
   const params = {
     TableName: table,
     Key: { id, teamId },
