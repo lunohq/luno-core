@@ -150,7 +150,8 @@ export async function getReply({ teamId, id, options = {} }) {
   return reply
 }
 
-export async function updateReply({ teamId, id, topicId, title, body, updatedBy, changed = new Date().toISOString(), rollback = false }) {
+export async function updateReply({ teamId, id, topicId, title, body, keywords: rawKeywords, updatedBy, changed = new Date().toISOString(), rollback = false }) {
+  const keywords = rawKeywords.trim()
   const params = {
     TableName: table,
     Key: { id, teamId },
@@ -161,6 +162,7 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
         , #body = :body
         , #changed = :changed
         ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
+        ${keywords ? ', #keywords = :keywords' : ''}
     `,
     ExpressionAttributeNames: {
       '#id': 'id',
@@ -179,6 +181,11 @@ export async function updateReply({ teamId, id, topicId, title, body, updatedBy,
   if (updatedBy) {
     params.ExpressionAttributeNames['#updatedBy'] = 'updatedBy'
     params.ExpressionAttributeValues[':updatedBy'] = updatedBy
+  }
+
+  if (keywords) {
+    params.ExpressionAttributeNames['#keywords'] = 'keywords'
+    params.ExpressionAttributeValues[':keywords'] = keywords
   }
 
   const mutex = await lockReply({ teamId, id })
