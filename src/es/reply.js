@@ -12,10 +12,24 @@ function newTopicPrefix(topics) {
   return names.join(' ')
 }
 
-export async function indexReply({ reply: { id, title, ...body }, topics }) {
-  const prefix = newTopicPrefix(topics)
-  const prefixedTitle = `${prefix} ${title}`.trim()
-  body.title = prefixedTitle
+function newKeywordsSuffix(keywords) {
+  const words = keywords.trim().split(',')
+  return words.map(word => word.trim()).join(' ')
+}
+
+export async function indexReply({ reply: { id, title: rawTitle, keywords, ...body }, topics }) {
+  let title = rawTitle
+  if (topics) {
+    const prefix = newTopicPrefix(topics)
+    title = `${prefix} ${title}`.trim()
+  }
+
+  if (keywords) {
+    const suffix = newKeywordsSuffix(keywords)
+    title = `${title} ${suffix}`.trim()
+  }
+
+  body.title = title
   const indices = await getWriteIndices(client)
   const actions = []
   for (const index of indices) {
