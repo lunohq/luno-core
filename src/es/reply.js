@@ -17,18 +17,26 @@ function newKeywordsSuffix(keywords) {
   return words.map(word => word.trim()).join(' ')
 }
 
+function toArray(commaDelimitedValue) {
+  const values = commaDelimitedValue.trim().split(',')
+  return values.map(value => value.trim())
+}
+
 export async function indexReply({ reply: { id, title: rawTitle, keywords, ...body }, topics }) {
   let title = rawTitle
   let displayTitle = rawTitle
+  body.titleV2 = rawTitle
   if (topics) {
     const prefix = newTopicPrefix(topics)
     title = `${prefix} ${title}`.trim()
     displayTitle = title
+    body.topic = topics[0].name
   }
 
   if (keywords) {
     const suffix = newKeywordsSuffix(keywords)
     title = `${title} ${suffix}`.trim()
+    body.keywords = toArray(keywords)
   }
 
   body.title = title
@@ -137,8 +145,71 @@ function getQuery({ teamId, query }) {
   }
 }
 
+function getQueryV2({ teamId, query }) {
+  return {
+    query: {
+      filtered: {
+        query: {
+          bool: {
+            should: [
+              {
+                bool: {
+                  should: [
+                    { match: { titleV2: { query } } },
+                    { match: { 'titleV2.raw': { query } } },
+                    { match: { 'titleV2.shingles': { query } } },
+                  ],
+                },
+              },
+              {
+                bool: {
+                  should: [
+                    { match: { body: { query } } },
+                    { match: { 'body.shingles': { query } } },
+                  ],
+                },
+              },
+              {
+                bool: {
+                  should: [
+                    { match: { keywords: { query } } },
+                    { match: { 'keywords.raw': { query } } },
+                    { match: { 'keywords.shingles': { query } } },
+                  ],
+                },
+              },
+              {
+                bool: {
+                  should: [
+                    { match: { topic: { query } } },
+                    { match: { 'topic.raw': { query } } },
+                    { match: { 'topic.shingles': { query } } },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        filter: {
+          term: { teamId },
+        },
+      },
+    },
+  }
+}
+
 export function search({ teamId, query, options = {} }) {
   const body = getQuery({ teamId, query })
+  return strictClient.search({
+    ...config.read,
+    ...options,
+    type,
+    body,
+  })
+}
+
+export function searchV2({ teamId, query, options = {} }) {
+  const body = getQueryV2({ teamId, query })
   return strictClient.search({
     ...config.read,
     ...options,
