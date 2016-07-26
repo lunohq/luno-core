@@ -76,9 +76,14 @@ export async function updateTopicName({ teamId, topicId, name, replies }) {
   const actions = []
   for (const reply of replies) {
     for (const index of indices)  {
-      const title = `[${name}] ${reply.title}`
+      let title = `[${name}] ${reply.title}`
+      const displayTitle = title
+      if (reply.keywords) {
+        const suffix = newKeywordsSuffix(reply.keywords)
+        title = `${title} ${suffix}`.trim()
+      }
       actions.push({ update: { _index: index, _id: reply.id } })
-      actions.push({ doc: { title } })
+      actions.push({ doc: { title, displayTitle } })
     }
   }
 
