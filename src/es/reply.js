@@ -147,14 +147,14 @@ export function search({ teamId, query, options = {} }) {
   })
 }
 
-export function explain({ teamId, query, answerId }) {
+export function explain({ teamId, query, replyId }) {
   const body = getQuery({ teamId, query })
   return client.explain({
     ...config.read,
     ...config.explain,
     type,
     body,
-    id: answerId,
+    id: replyId,
     routing: teamId,
   })
 }
