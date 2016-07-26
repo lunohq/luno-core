@@ -91,7 +91,7 @@ export async function updateTopicName({ teamId, topicId, name, replies }) {
         title = `${title} ${suffix}`.trim()
       }
       actions.push({ update: { _index: index, _id: reply.id } })
-      actions.push({ doc: { title, displayTitle } })
+      actions.push({ doc: { title, displayTitle, topic: name } })
     }
   }
 
