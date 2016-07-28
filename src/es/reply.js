@@ -19,7 +19,13 @@ function newKeywordsSuffix(keywords) {
 
 function toArray(commaDelimitedValue) {
   const values = commaDelimitedValue.trim().split(',')
-  return values.map(value => value.trim())
+  const output = []
+  values.forEach(value => {
+    if (value.trim()) {
+      output.push(value)
+    }
+  })
+  return output
 }
 
 export async function indexReply({ reply: { id, title: rawTitle, keywords, ...body }, topics }) {
