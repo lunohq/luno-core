@@ -163,12 +163,14 @@ export async function updateReply({ teamId, id, topicId, title, body, keywords: 
         , #changed = :changed
         ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
         ${keywords ? ', #keywords = :keywords' : ''}
+      ${keywords ? '' : 'REMOVE #keywords'}
     `,
     ExpressionAttributeNames: {
       '#id': 'id',
       '#title': 'title',
       '#body': 'body',
       '#changed': 'changed',
+      '#keywords': 'keywords',
     },
     ExpressionAttributeValues: {
       ':title': title,
@@ -184,7 +186,6 @@ export async function updateReply({ teamId, id, topicId, title, body, keywords: 
   }
 
   if (keywords) {
-    params.ExpressionAttributeNames['#keywords'] = 'keywords'
     params.ExpressionAttributeValues[':keywords'] = keywords
   }
 
