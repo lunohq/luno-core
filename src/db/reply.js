@@ -150,7 +150,18 @@ export async function getReply({ teamId, id, options = {} }) {
   return reply
 }
 
-export async function updateReply({ teamId, id, topicId, title, body, keywords: rawKeywords, updatedBy, changed = new Date().toISOString(), rollback = false }) {
+export async function updateReply({
+    teamId,
+    id,
+    topicId,
+    title,
+    body,
+    keywords: rawKeywords,
+    updatedBy,
+    attachments = [],
+    changed = new Date().toISOString(),
+    rollback = false,
+  }) {
   const keywords = rawKeywords && rawKeywords.trim()
   const params = {
     TableName: table,
@@ -161,6 +172,7 @@ export async function updateReply({ teamId, id, topicId, title, body, keywords: 
         #title = :title
         , #body = :body
         , #changed = :changed
+        , #attachments = :attachments
         ${updatedBy ? ', #updatedBy = :updatedBy' : ''}
         ${keywords ? ', #keywords = :keywords' : ''}
       ${keywords ? '' : 'REMOVE #keywords'}
@@ -171,11 +183,13 @@ export async function updateReply({ teamId, id, topicId, title, body, keywords: 
       '#body': 'body',
       '#changed': 'changed',
       '#keywords': 'keywords',
+      '#attachments': 'attachments',
     },
     ExpressionAttributeValues: {
       ':title': title,
       ':body': body,
       ':changed': changed,
+      ':attachments': attachments,
     },
     ReturnValues: 'ALL_OLD',
   }
