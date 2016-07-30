@@ -17,6 +17,11 @@ function newKeywordsSuffix(keywords) {
   return words.map(word => word.trim()).join(' ')
 }
 
+function newAttachmentsFooter(attachments) {
+  const formattedAttachments = attachments.map(({ file: { permalink, name } }) => `<${permalink}|${name}>`)
+  return `_Attachments: ${formattedAttachments.join(', ')}_`
+}
+
 function toArray(commaDelimitedValue) {
   const values = commaDelimitedValue.trim().split(',')
   const output = []
@@ -28,7 +33,7 @@ function toArray(commaDelimitedValue) {
   return output
 }
 
-export async function indexReply({ reply: { id, title: rawTitle, keywords, ...body }, topics }) {
+export async function indexReply({ reply: { id, title: rawTitle, keywords, attachments, ...body }, topics }) {
   let title = rawTitle
   let displayTitle = rawTitle
   body.titleV2 = rawTitle
@@ -43,6 +48,11 @@ export async function indexReply({ reply: { id, title: rawTitle, keywords, ...bo
     const suffix = newKeywordsSuffix(keywords)
     title = `${title} ${suffix}`.trim()
     body.keywords = toArray(keywords)
+  }
+
+  if (attachments) {
+    const footer = newAttachmentsFooter(attachments)
+    body.body = `${body.body}\n---\n${footer}`
   }
 
   body.title = title
