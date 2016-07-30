@@ -33,7 +33,7 @@ function toArray(commaDelimitedValue) {
   return output
 }
 
-export async function indexReply({ reply: { id, title: rawTitle, keywords, attachments, ...body }, topics }) {
+export async function indexReply({ reply: { id, title: rawTitle, keywords, attachments = [], ...body }, topics }) {
   let title = rawTitle
   let displayTitle = rawTitle
   body.titleV2 = rawTitle
@@ -50,7 +50,7 @@ export async function indexReply({ reply: { id, title: rawTitle, keywords, attac
     body.keywords = toArray(keywords)
   }
 
-  if (attachments) {
+  if (attachments.length) {
     const footer = newAttachmentsFooter(attachments)
     body.body = `${body.body}\n---\n${footer}`
   }
