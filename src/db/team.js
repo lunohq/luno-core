@@ -56,11 +56,12 @@ export async function updateTeam(team) {
     Key: { id: team.id },
     UpdateExpression: `
       SET
-        #createdBy = if_not_exists(createdBy, :createdBy),
-        #name = :name,
-        #slack = :slack,
-        #created = if_not_exists(#created, :created),
-        #changed = :changed
+        #createdBy = if_not_exists(createdBy, :createdBy)
+        , #name = :name
+        , #slack = :slack
+        , #created = if_not_exists(#created, :created)
+        , #changed = :changed
+        ${team.files ? ', #files = :files' : ''}
     `,
     ExpressionAttributeNames: {
       '#createdBy': 'createdBy',
@@ -77,6 +78,11 @@ export async function updateTeam(team) {
       ':changed': now,
     },
     ReturnValues: 'ALL_NEW',
+  }
+
+  if (team.files) {
+    params.ExpressionAttributeNames['#files'] = 'files'
+    params.ExpressionAttributeValues[':files'] = team.files
   }
 
   const data = await client.update(params).promise()
