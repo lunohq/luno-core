@@ -166,59 +166,6 @@ function getQuery({ teamId, query }) {
   }
 }
 
-function getQueryV2({ teamId, query }) {
-  return {
-    query: {
-      filtered: {
-        query: {
-          bool: {
-            should: [
-              {
-                bool: {
-                  should: [
-                    { match: { titleV2: { query } } },
-                    { match: { 'titleV2.raw': { query } } },
-                    { match: { 'titleV2.shingles': { query } } },
-                  ],
-                },
-              },
-              {
-                bool: {
-                  should: [
-                    { match: { body: { query } } },
-                    { match: { 'body.shingles': { query } } },
-                  ],
-                },
-              },
-              {
-                bool: {
-                  should: [
-                    { match: { keywords: { query } } },
-                    { match: { 'keywords.raw': { query } } },
-                    { match: { 'keywords.shingles': { query } } },
-                  ],
-                },
-              },
-              {
-                bool: {
-                  should: [
-                    { match: { topic: { query } } },
-                    { match: { 'topic.raw': { query } } },
-                    { match: { 'topic.shingles': { query } } },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-        filter: {
-          term: { teamId },
-        },
-      },
-    },
-  }
-}
-
 export function search({ teamId, query, options = {} }) {
   const body = getQuery({ teamId, query })
   return strictClient.search({
@@ -229,14 +176,57 @@ export function search({ teamId, query, options = {} }) {
   })
 }
 
-export function searchV2({ teamId, query, options = {} }) {
-  const body = getQueryV2({ teamId, query })
-  return strictClient.search({
+function getTieredQuery({ teamId, query, minimumShouldMatch }) {
+  return {
+    query: {
+      filtered: {
+        query: {
+          multi_match: {
+            query,
+            type: 'cross_fields',
+            fields: [
+              'titleV2',
+              'body',
+              'keywords',
+              'topic',
+            ],
+            minimum_should_match: minimumShouldMatch,
+          },
+        },
+        filter: {
+          term: { teamId },
+        },
+      },
+    },
+  }
+}
+
+export async function msearch({ teamId, query, options = {} }) {
+  const meta = {
     ...config.read,
-    ...options,
     type,
-    body,
-  })
+  }
+
+  function tier(minimumShouldMatch) {
+    const main = getTieredQuery({ teamId, query, minimumShouldMatch })
+    return {
+      ...main,
+      ...options,
+    }
+  }
+
+  const tiers = [
+    // tier 1
+    meta,
+    tier('100%'),
+    // tier 2
+    meta,
+    tier('1<50% 2<75%'),
+    // tier 3
+    meta,
+    tier(1),
+  ]
+  return strictClient.msearch({ body: tiers, ...options })
 }
 
 export function explain({ teamId, query, replyId }) {
