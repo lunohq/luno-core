@@ -207,11 +207,13 @@ export async function msearch({ teamId, query, options = {} }) {
     type,
   }
 
+  const { requestTimeout, ...rest } = options
+
   function tier(minimumShouldMatch) {
     const main = getTieredQuery({ teamId, query, minimumShouldMatch })
     return {
       ...main,
-      ...options,
+      ...rest,
     }
   }
 
@@ -226,7 +228,7 @@ export async function msearch({ teamId, query, options = {} }) {
     meta,
     tier(1),
   ]
-  return strictClient.msearch({ body: tiers, ...options })
+  return strictClient.msearch({ body: tiers, requestTimeout, ...rest })
 }
 
 export function explain({ teamId, query, replyId }) {
