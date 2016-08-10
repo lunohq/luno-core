@@ -7,6 +7,10 @@ const debug = require('debug')('core:es:reply')
 
 const type = 'reply'
 
+const TIER_1 = '100%'
+const TIER_2 = '1<50% 2<75%'
+const TIER_3 = 1
+
 function newTopicPrefix(topics) {
   const names = topics.map(topic => topic.name ? `[${topic.name}]` : '')
   return names.join(' ')
@@ -220,19 +224,33 @@ export async function msearch({ teamId, query, options = {} }) {
   const tiers = [
     // tier 1
     meta,
-    tier('100%'),
+    tier(TIER_1),
     // tier 2
     meta,
-    tier('1<50% 2<75%'),
+    tier(TIER_2),
     // tier 3
     meta,
-    tier(1),
+    tier(TIER_3),
   ]
   return strictClient.msearch({ body: tiers, requestTimeout, ...rest })
 }
 
-export function explain({ teamId, query, replyId }) {
-  const body = getQuery({ teamId, query })
+export function explain({ teamId, query, replyId, tier }) {
+  let minimumShouldMatch
+  switch (tier) {
+  case 1:
+    minimumShouldMatch = TIER_1
+    break
+  case 2:
+    minimumShouldMatch = TIER_2
+    break
+  case 3:
+    minimumShouldMatch = TIER_3
+    break
+  default:
+    throw new Error(`Invalid tier: ${tier}`)
+  }
+  const body = getTieredQuery({ teamId, query, minimumShouldMatch })
   return client.explain({
     ...config.read,
     ...config.explain,
