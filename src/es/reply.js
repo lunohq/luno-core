@@ -223,7 +223,7 @@ export async function msearch({ teamId, query, options = {} }) {
     tier('100%'),
     // tier 2
     meta,
-    tier('1<50% 2<65% 3<75%'),
+    tier('1<50% 2<75%'),
     // tier 3
     meta,
     tier(1),
