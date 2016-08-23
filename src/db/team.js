@@ -5,7 +5,7 @@ const table = resolveTableName('team-v1')
 export const STATUS_ACTIVE = 0
 export const STATUS_INACTIVE = 1
 
-export const TEMPLATE_ONBOARDING = 0
+export const TEMPLATE_ONBOARDING = 'onboarding'
 
 export class Team {}
 
@@ -133,15 +133,14 @@ export function ranTemplate({ id, template }) {
     Key: { id },
     UpdateExpression:`
       SET
-        #templates[:template] = :templateRan
+        #template = :templateRan,
         #changed = :changed
     `,
     ExpressionAttributeNames: {
-      '#templates': 'templates',
+      '#template': `${template}Template`,
       '#changed': 'changed',
     },
     ExpressionAttributeValues: {
-      ':template': [template],
       ':templateRan': now,
       ':changed': now,
     },
