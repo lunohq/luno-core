@@ -5,6 +5,8 @@ const table = resolveTableName('team-v1')
 export const STATUS_ACTIVE = 0
 export const STATUS_INACTIVE = 1
 
+export const TEMPLATE_ONBOARDING = 0
+
 export class Team {}
 
 export async function getTeam(id, options={}) {
@@ -89,7 +91,7 @@ export async function updateTeam(team) {
   return fromDB(Team, data.Attributes)
 }
 
-export async function updateTeamStatus({ id, status }) {
+export function updateTeamStatus({ id, status }) {
   const now = new Date().toISOString()
   const params = {
     TableName: table,
@@ -113,7 +115,7 @@ export async function updateTeamStatus({ id, status }) {
     ReturnValues: 'ALL_NEW',
   }
 
-  return await client.update(params).promise()
+  return client.update(params).promise()
 }
 
 export function deactivateTeam(id) {
@@ -122,6 +124,30 @@ export function deactivateTeam(id) {
 
 export function activateTeam(id) {
   return updateTeamStatus({ id, status: STATUS_ACTIVE })
+}
+
+export function ranTemplate({ id, template }) {
+  const now = new Date().toISOString()
+  const params = {
+    TableName: table,
+    Key: { id },
+    UpdateExpression:`
+      SET
+        #templates[:template] = :templateRan
+        #changed = :changed
+    `,
+    ExpressionAttributeNames: {
+      '#templates': 'templates',
+      '#changed': 'changed',
+    },
+    ExpressionAttributeValues: {
+      ':template': [template],
+      ':templateRan': now,
+      ':changed': now,
+    },
+    ReturnValues: 'ALL_NEW',
+  }
+  return client.update(params).promise()
 }
 
 export async function getTeams() {
