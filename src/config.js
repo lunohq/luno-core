@@ -23,6 +23,7 @@ merge(config, {
     region: AWS_REGION,
   },
   es: {
+    region: AWS_REGION,
     host: ES_HOST,
     explain: {
       timeout: ES_EXPLAIN_TIMEOUT || 5000,

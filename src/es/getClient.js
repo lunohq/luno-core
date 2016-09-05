@@ -41,7 +41,7 @@ export default function getClient({ requestTimeout = 1000 } = {}) {
     connectionClass: connector,
     log: 'info',
     amazonES: {
-      region: env.aws.region,
+      region: env.es.region,
       credentials: credentials(),
     },
     requestTimeout,
