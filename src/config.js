@@ -8,6 +8,7 @@ const {
     STAGE,
     AWS_REGION,
     ES_HOST,
+    ES_REGION,
     ES_EXPLAIN_TIMEOUT,
     ES_REPLY_MINIMUM_SHOULD_MATCH,
     REDIS_HOST,
@@ -23,7 +24,7 @@ merge(config, {
     region: AWS_REGION,
   },
   es: {
-    region: AWS_REGION,
+    region: ES_REGION || AWS_REGION,
     host: ES_HOST,
     explain: {
       timeout: ES_EXPLAIN_TIMEOUT || 5000,
